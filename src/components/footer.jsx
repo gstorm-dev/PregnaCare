@@ -2,7 +2,7 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer id="contact" className="mt-20 border-t border-slate-200 bg-slate-50">
+    <footer className="mt-20 border-t border-slate-200 bg-slate-50">
       <div className="mx-auto grid w-[90%] max-w-6xl gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <a href="/" className="text-2xl font-bold tracking-tight text-slate-900">
@@ -21,7 +21,6 @@ const Footer = () => {
           <div className="mt-4 flex flex-col items-start gap-3 text-sm text-slate-600">
             <a href="#about" className="transition hover:text-blue-700">About PregnaCare</a>
             <a href="#services" className="transition hover:text-blue-700">Our services</a>
-            <a href="#contact" className="transition hover:text-blue-700">Contact us</a>
           </div>
         </div>
 

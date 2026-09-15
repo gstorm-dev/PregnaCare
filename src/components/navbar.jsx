@@ -27,8 +27,10 @@ const Navbar = () => {
       : location.pathname === "/" && location.hash === `#${section}`;
 
   const linkClass = (active) =>
-    `text-sm font-medium transition ${
-      active ? "font-semibold text-[#c87861]" : "text-[#69736f] hover:text-[#c87861]"
+    `relative text-sm font-medium transition ${
+      active
+        ? "font-semibold text-[#b66d58] after:absolute after:-bottom-2 after:left-0 after:right-0 after:h-0.5 after:bg-[#d98268]"
+        : "text-[#69736f] hover:text-[#c87861]"
     }`;
 
   const mobileLinkClass = (active) =>
@@ -45,7 +47,7 @@ const Navbar = () => {
             ✦
           </div>
 
-          <span className="text-2xl font-bold tracking-tight text-gray-900">
+          <span className="font-serif text-2xl font-bold tracking-tight text-[#26322e]">
             Pregna<span className="text-[#c87861]">Care</span>
           </span>
         </Link>
@@ -63,9 +65,6 @@ const Navbar = () => {
             Services
           </NavLink>
 
-          <NavLink to="/#contact" className={() => linkClass(isActive("contact"))}>
-            Contact
-          </NavLink>
         </div>
 
         <div className="hidden items-center gap-3 sm:flex">
@@ -97,14 +96,13 @@ const Navbar = () => {
 
       {menuOpen && (
         <div className="border-t border-[#eadfd9] bg-[#fffdfb] px-6 py-4 sm:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-1 text-sm font-semibold text-slate-700">
+          <div className="mx-auto flex max-w-7xl flex-col gap-1 text-sm font-semibold text-[#3b4944]">
             <NavLink to="/" end onClick={closeMenu} className={() => mobileLinkClass(isActive("home"))}>Home</NavLink>
             <NavLink to="/#about" onClick={closeMenu} className={() => mobileLinkClass(isActive("about"))}>About</NavLink>
             <NavLink to="/#services" onClick={closeMenu} className={() => mobileLinkClass(isActive("services"))}>Services</NavLink>
-            <NavLink to="/#contact" onClick={closeMenu} className={() => mobileLinkClass(isActive("contact"))}>Contact</NavLink>
-            <div className="mt-2 flex gap-3 border-t border-slate-100 pt-3">
-              <Link to="/patient/login" onClick={closeMenu} className="flex-1 rounded-lg px-4 py-2.5 text-center text-slate-700 hover:bg-slate-50">Login</Link>
-              <Link to="/patient/signup" onClick={closeMenu} className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-center text-white hover:bg-blue-700">Sign Up</Link>
+            <div className="mt-2 flex gap-3 border-t border-[#eadfd9] pt-3">
+              <Link to="/patient/login" onClick={closeMenu} className="flex-1 rounded-lg px-4 py-2.5 text-center text-[#3b4944] transition hover:bg-[#fff0ea] hover:text-[#b66d58]">Login</Link>
+              <Link to="/patient/signup" onClick={closeMenu} className="flex-1 rounded-lg bg-[#d98268] px-4 py-2.5 text-center text-white transition hover:bg-[#c66f57]">Sign Up</Link>
             </div>
           </div>
         </div>

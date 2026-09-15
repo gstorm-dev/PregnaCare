@@ -109,7 +109,7 @@ const Home = () => {
 
       <section className="relative overflow-hidden bg-[#fff3ef]">
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-[700px] lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-24">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-175 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-24">
           <div className="max-w-2xl">
             
 
@@ -136,7 +136,7 @@ const Home = () => {
               </Link>
 
               <Link
-                to="/doctors"
+                to="/#services"
                 className="inline-flex items-center justify-center gap-2 border border-[#d8c6bf] bg-white px-6 py-3.5 text-sm font-bold text-[#3b4944] transition hover:-translate-y-1 hover:border-[#d98268] hover:text-[#c87861] sm:px-7"
               >
                 Find a Doctor
@@ -186,11 +186,11 @@ const Home = () => {
           </div>
 
           <div className="relative mx-auto w-full max-w-xl">
-            <div className="relative overflow-hidden rounded-[2rem] border border-white bg-white p-2 shadow-[0_24px_70px_rgba(54,45,39,.18)] sm:p-3">
+            <div className="relative overflow-hidden rounded-4xl border border-white bg-white p-2 shadow-[0_24px_70px_rgba(54,45,39,.18)] sm:p-3">
               <img
                 src="images/p3.jpg"
                 alt="Mother receiving pregnancy care"
-                className="h-[390px] w-full rounded-[1.5rem] object-cover transition duration-700 hover:scale-[1.02] sm:h-[500px] lg:h-[570px]"
+                className="h-97.5 w-full rounded-3xl object-cover transition duration-700 hover:scale-[1.02] sm:h-125 lg:h-142.5"
               />
 
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/60 bg-white/95 p-4 shadow-xl backdrop-blur-xl sm:bottom-8 sm:left-8 sm:right-8 sm:p-5">
@@ -273,7 +273,7 @@ const Home = () => {
       </section>
 
       {/* ABOUT */}
-      <section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <section id="about" className="scroll-mt-24 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="relative">
             <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -345,7 +345,7 @@ const Home = () => {
             </div>
 
             <Link
-              to="/about"
+              to="/#about"
               className="mt-8 inline-flex items-center gap-2 font-bold text-blue-700 transition hover:gap-3"
             >
               Discover PregnaCare
@@ -356,7 +356,7 @@ const Home = () => {
       </section>
 
       {/* SERVICES */}
-      <section className="bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <section id="services" className="scroll-mt-24 bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
@@ -404,7 +404,7 @@ const Home = () => {
                   </p>
 
                   <Link
-                    to="/patient"
+                    to="/patient/signup"
                     className="mt-7 inline-flex items-center gap-2 font-bold text-blue-700"
                   >
                     Learn more
@@ -475,7 +475,7 @@ const Home = () => {
                   </p>
 
                   <Link
-                    to="/doctors"
+                    to="/#services"
                     className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-3 text-sm font-bold text-slate-800 transition hover:bg-blue-700 hover:text-white"
                   >
                     View Profile
@@ -488,7 +488,7 @@ const Home = () => {
 
           <div className="mt-10 text-center">
             <Link
-              to="/doctors"
+              to="/#services"
               className="inline-flex items-center gap-2 font-bold text-blue-700 transition hover:gap-3"
             >
               View all doctors
@@ -570,7 +570,7 @@ const Home = () => {
             </div>
 
             <Link
-              to="/services"
+              to="/#services"
               className="inline-flex items-center gap-2 font-bold text-blue-700"
             >
               Explore resources
@@ -664,7 +664,7 @@ const Home = () => {
 
       {/* CTA */}
       <section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-24">
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[#c87861] px-6 py-16 text-center shadow-[0_24px_60px_rgba(125,79,62,.18)] sm:px-10 md:rounded-[2.5rem] md:px-16 md:py-20">
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-4xl bg-[#c87861] px-6 py-16 text-center shadow-[0_24px_60px_rgba(125,79,62,.18)] sm:px-10 md:rounded-5xl md:px-16 md:py-20">
           <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
           <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-[#f2c8b8]/25 blur-3xl"></div>
 
@@ -685,7 +685,7 @@ const Home = () => {
 
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
-                to="/patient-register"
+                to="/patient/signup"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-7 py-3.5 font-bold text-[#b66d58] transition hover:bg-[#fff0ea]"
               >
                 Create Patient Account
@@ -693,7 +693,7 @@ const Home = () => {
               </Link>
 
               <Link
-                to="/doctor-register"
+                to="/doctor/signup"
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 font-bold text-white backdrop-blur transition hover:bg-white hover:text-[#b66d58]"
               >
                 Join as a Doctor
