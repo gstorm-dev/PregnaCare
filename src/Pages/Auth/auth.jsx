@@ -39,7 +39,7 @@ const AuthPage = ({ mode, role }) => {
   };
 
   return (
-    <main className="min-h-[calc(100vh-80px)] w-full bg-blue-50 px-6 py-12">
+    <main className="min-h-[calc(100vh-80px)] w-full px-6 py-12">
 
       <div className="mx-auto flex min-h-[calc(100vh-176px)] w-full max-w-6xl items-center justify-center">
 
@@ -158,7 +158,7 @@ const AuthPage = ({ mode, role }) => {
               to={`/${role}/${isSignup ? "login" : "signup"}`}
               className="font-semibold text-blue-700 hover:text-blue-800"
             >
-              {isSignup ? "Sign in" : "Create one"}
+              {isSignup ? "Sign in" : "Create an Account"}
             </Link>
 
           </div>
