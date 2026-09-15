@@ -28,25 +28,25 @@ const Navbar = () => {
 
   const linkClass = (active) =>
     `text-sm font-medium transition ${
-      active ? "font-semibold text-blue-600" : "text-gray-600 hover:text-blue-600"
+      active ? "font-semibold text-[#c87861]" : "text-[#69736f] hover:text-[#c87861]"
     }`;
 
   const mobileLinkClass = (active) =>
-    `rounded-lg px-3 py-3 transition ${
-      active ? "bg-blue-50 text-blue-700" : "hover:bg-blue-50 hover:text-blue-700"
+    `px-3 py-3 transition ${
+      active ? "bg-[#fff0ea] text-[#b66d58]" : "hover:bg-[#fff0ea] hover:text-[#b66d58]"
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-blue-100 bg-white/95 backdrop-blur">
+    <nav className="sticky top-0 z-50 w-full border-b border-[#eadfd9] bg-[#fffdfb]/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
         <Link to="/" className="flex items-center gap-3" onClick={closeMenu}>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#d98268] text-xl font-bold text-white shadow-sm">
             ✦
           </div>
 
           <span className="text-2xl font-bold tracking-tight text-gray-900">
-            Pregna<span className="text-blue-600">Care</span>
+            Pregna<span className="text-[#c87861]">Care</span>
           </span>
         </Link>
 
@@ -71,14 +71,14 @@ const Navbar = () => {
         <div className="hidden items-center gap-3 sm:flex">
           <Link
             to="/patient/login"
-            className="hidden px-4 py-2 text-sm font-semibold text-gray-700 transition hover:text-blue-600 sm:block"
+            className="hidden px-4 py-2 text-sm font-semibold text-[#3b4944] transition hover:text-[#c87861] sm:block"
           >
             Login
           </Link>
 
           <Link
             to="/patient/signup"
-            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="rounded-lg bg-[#d98268] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#c66f57]"
           >
             Sign Up
           </Link>
@@ -89,14 +89,14 @@ const Navbar = () => {
           aria-label="Toggle navigation menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-100 text-xl text-blue-700 transition hover:bg-blue-50 sm:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#eadfd9] text-xl text-[#c87861] transition hover:bg-[#fff0ea] sm:hidden"
         >
           {menuOpen ? "×" : "☰"}
         </button>
       </div>
 
       {menuOpen && (
-        <div className="border-t border-blue-100 bg-white px-6 py-4 sm:hidden">
+        <div className="border-t border-[#eadfd9] bg-[#fffdfb] px-6 py-4 sm:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 text-sm font-semibold text-slate-700">
             <NavLink to="/" end onClick={closeMenu} className={() => mobileLinkClass(isActive("home"))}>Home</NavLink>
             <NavLink to="/#about" onClick={closeMenu} className={() => mobileLinkClass(isActive("about"))}>About</NavLink>
