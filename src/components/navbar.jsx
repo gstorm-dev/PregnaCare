@@ -39,7 +39,7 @@ const Navbar = () => {
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-[#eadfd9] bg-[#fffdfb]/95 backdrop-blur">
+    <nav className="fixed left-0 top-0 z-50 w-full border-b border-[#eadfd9] bg-[#fffdfb]/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
         <Link to="/" className="flex items-center gap-3" onClick={closeMenu}>
@@ -53,10 +53,6 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
-          <NavLink to="/" end className={() => linkClass(isActive("home"))}>
-            Home
-          </NavLink>
-
           <NavLink to="/#about" className={() => linkClass(isActive("about"))}>
             About
           </NavLink>
@@ -97,7 +93,6 @@ const Navbar = () => {
       {menuOpen && (
         <div className="border-t border-[#eadfd9] bg-[#fffdfb] px-6 py-4 sm:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 text-sm font-semibold text-[#3b4944]">
-            <NavLink to="/" end onClick={closeMenu} className={() => mobileLinkClass(isActive("home"))}>Home</NavLink>
             <NavLink to="/#about" onClick={closeMenu} className={() => mobileLinkClass(isActive("about"))}>About</NavLink>
             <NavLink to="/#services" onClick={closeMenu} className={() => mobileLinkClass(isActive("services"))}>Services</NavLink>
             <div className="mt-2 flex gap-3 border-t border-[#eadfd9] pt-3">
