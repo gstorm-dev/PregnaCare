@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   Bell,
@@ -21,23 +21,55 @@ import {
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import DoctorProfile from "./doctorprofile";
+import Patients from "./patients";
+import Appointments from "./appointments";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
   { label: "Appointments", icon: CalendarDays, view: "appointments" },
   { label: "Patients", icon: Users, view: "patients" },
+  { label: "Pending Requests", icon: FileText, view: "pendingPatients" },
   { label: "Care Plans", icon: ClipboardCheck, view: "plans" },
   { label: "Reports", icon: Activity, view: "reports" },
 ];
 
-const doctorPatients = [
-  { name: "Amina Yusuf", age: 28, condition: "Prenatal monitoring", visit: "Monday, 10:30 AM", status: "Review due" },
-  { name: "Grace Thompson", age: 32, condition: "Blood pressure follow-up", visit: "Tuesday, 2:00 PM", status: "In review" },
-  { name: "Sarah Okafor", age: 26, condition: "Nutrition consultation", visit: "Wednesday, 9:15 AM", status: "Routine" },
-  { name: "Chinelo Eze", age: 30, condition: "Fetal screening", visit: "Thursday, 11:45 AM", status: "Scheduled" },
-  { name: "Lola Adeyemi", age: 34, condition: "Postnatal support", visit: "Friday, 1:30 PM", status: "Checklist" },
-  { name: "Mariam Bello", age: 29, condition: "Lab review", visit: "Friday, 4:00 PM", status: "Review due" },
+const initialPendingRequests = [
+  { id: 1, name: "Amina Yusuf", age: 28, reason: "Prenatal check-in", requestedAt: "Today, 9:15 AM" },
+  { id: 2, name: "Grace Thompson", age: 32, reason: "Blood pressure follow-up", requestedAt: "Today, 11:40 AM" },
+  { id: 3, name: "Sarah Okafor", age: 26, reason: "Nutrition consultation", requestedAt: "Tomorrow, 8:30 AM" },
 ];
+
+const initialPendingAppointments = [
+  { id: 1, patientName: "Olorigbeske Ajibologun", reason: "Prenatal check-in", date: "Wednesday, September 23, 10:30 AM", scheduledAt: "2026-09-23T10:30:00", requestedAt: "Today, 9:15 AM" },
+  { id: 2, patientName: "Mary Amaka", reason: "Blood pressure review", date: "Thursday, September 24, 1:15 PM", scheduledAt: "2026-09-24T13:15:00", requestedAt: "Today, 11:40 AM" },
+];
+
+const getConsultationRoomName = (appointment) => {
+  const patientName = appointment.patientName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return `pregnacare-${appointment.id}-${patientName}`;
+};
+
+const defaultPreferences = { appointmentReminders: true, carePlanUpdates: true, emailNotifications: true };
+
+const getDoctorStorageKey = (section) => {
+  try {
+    const user = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+    const doctorId = user?.email?.toLowerCase().replace(/[^a-z0-9]/g, "-") || "guest";
+    return `doctorDashboard:${doctorId}:${section}`;
+  } catch {
+    return `doctorDashboard:guest:${section}`;
+  }
+};
+
+const getStoredList = (section, fallback) => {
+  try {
+    const savedList = JSON.parse(localStorage.getItem(getDoctorStorageKey(section)) || "null");
+    return Array.isArray(savedList) ? savedList : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 const Doctordashboard = () => {
   const navigate = useNavigate();
@@ -46,6 +78,38 @@ const Doctordashboard = () => {
   const [activeView, setActiveView] = useState("dashboard");
   const [patientQuery, setPatientQuery] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
+  const [preferences, setPreferences] = useState(() => {
+    try {
+      return { ...defaultPreferences, ...JSON.parse(localStorage.getItem("doctorDashboardPreferences") || "{}") };
+    } catch {
+      return defaultPreferences;
+    }
+  });
+  const [pendingPatients, setPendingPatients] = useState(() => getStoredList("pendingPatients", initialPendingRequests));
+  const [acceptedPatients, setAcceptedPatients] = useState(() => getStoredList("acceptedPatients", []));
+  const [pendingAppointments, setPendingAppointments] = useState(() => getStoredList("pendingAppointments", initialPendingAppointments));
+  const [acceptedAppointments, setAcceptedAppointments] = useState(() => getStoredList("acceptedAppointments", []));
+  const notifiedAppointmentIds = useRef(new Set());
+  const [doctorProfile, setDoctorProfile] = useState(() => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+      return {
+        name: storedUser?.name || "",
+        email: storedUser?.email || "",
+        phone: storedUser?.phone || "",
+        clinic: storedUser?.clinic || storedUser?.clinicName || "",
+        specialty: storedUser?.specialty || "",
+      };
+    } catch {
+      return {
+        name: "",
+        email: "",
+        phone: "",
+        clinic: "",
+        specialty: "",
+      };
+    }
+  });
 
   const savedUser = useMemo(() => {
     try {
@@ -55,17 +119,111 @@ const Doctordashboard = () => {
     }
   }, []);
 
-  const displayName = savedUser?.name || "Dr. Grace Okafor";
-  const firstName = displayName.split(" ").slice(-1)[0] || "Grace";
+  const displayName = doctorProfile.name || "Doctor";
+  const firstName = displayName.split(" ").slice(-1)[0] || "Doctor";
 
   const handleLogout = () => {
     localStorage.removeItem("loggedInUser");
     navigate("/");
   };
 
-  const filteredPatients = doctorPatients.filter((patient) =>
-    `${patient.name} ${patient.condition} ${patient.status}`.toLowerCase().includes(patientQuery.toLowerCase())
+  const filteredPatients = acceptedPatients.filter((patient) =>
+    `${patient.name} ${patient.condition || patient.reason} ${patient.status}`.toLowerCase().includes(patientQuery.toLowerCase())
   );
+
+  const activePatientCount = acceptedPatients.length;
+
+  useEffect(() => {
+    localStorage.setItem(getDoctorStorageKey("pendingPatients"), JSON.stringify(pendingPatients));
+  }, [pendingPatients]);
+
+  useEffect(() => {
+    localStorage.setItem(getDoctorStorageKey("acceptedPatients"), JSON.stringify(acceptedPatients));
+  }, [acceptedPatients]);
+
+  useEffect(() => {
+    localStorage.setItem(getDoctorStorageKey("pendingAppointments"), JSON.stringify(pendingAppointments));
+  }, [pendingAppointments]);
+
+  useEffect(() => {
+    localStorage.setItem(getDoctorStorageKey("acceptedAppointments"), JSON.stringify(acceptedAppointments));
+  }, [acceptedAppointments]);
+
+  const notifyDoctorConsultationReady = (appointment) => {
+    window.alert(`Consultation reminder: it is time to meet with ${appointment.patientName}. You can start the video call from the accepted appointment card.`);
+  };
+
+  useEffect(() => {
+    const checkConsultationTimes = () => {
+      const now = Date.now();
+
+      acceptedAppointments.forEach((appointment) => {
+        const appointmentTime = new Date(appointment.scheduledAt).getTime();
+        const hasValidTime = Number.isFinite(appointmentTime);
+
+        if (hasValidTime && appointmentTime <= now && !notifiedAppointmentIds.current.has(appointment.id)) {
+          notifiedAppointmentIds.current.add(appointment.id);
+          notifyDoctorConsultationReady(appointment);
+        }
+      });
+    };
+
+    checkConsultationTimes();
+    const reminderInterval = window.setInterval(checkConsultationTimes, 30_000);
+    return () => window.clearInterval(reminderInterval);
+  }, [acceptedAppointments]);
+
+  const startConsultation = (appointment) => {
+    navigate(`/consultation/${getConsultationRoomName(appointment)}`);
+  };
+
+  const handlePendingPatientDecision = (requestId, decision) => {
+    const request = pendingPatients.find((item) => item.id === requestId);
+    if (!request) return;
+
+    setPendingPatients((current) => current.filter((item) => item.id !== requestId));
+
+    if (decision === "accept") {
+      setAcceptedPatients((current) => [
+        ...current,
+        {
+          ...request,
+          condition: request.reason,
+          visit: request.requestedAt,
+          status: "New patient",
+        },
+      ]);
+
+      setPendingAppointments((current) => [
+        ...current,
+        {
+          id: Date.now(),
+          patientName: request.name,
+          reason: request.reason,
+          date: "To be scheduled",
+          requestedAt: request.requestedAt,
+        },
+      ]);
+    }
+  };
+
+  const handleAppointmentDecision = (appointmentId, decision) => {
+    const appointment = pendingAppointments.find((item) => item.id === appointmentId);
+    if (!appointment) {
+      const acceptedAppointment = acceptedAppointments.find((item) => item.id === appointmentId);
+      if (!acceptedAppointment) return;
+
+      setAcceptedAppointments((current) => current.filter((item) => item.id !== appointmentId));
+      return;
+    }
+
+    setPendingAppointments((current) => current.filter((item) => item.id !== appointmentId));
+
+    if (decision === "accept") {
+      const acceptedAppointment = { ...appointment, status: "Accepted" };
+      setAcceptedAppointments((current) => [...current, acceptedAppointment]);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] text-[#26322e]">
@@ -85,7 +243,7 @@ const Doctordashboard = () => {
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]">{displayName.slice(0, 1).toUpperCase()}</div>
             <div>
               <p className="text-sm font-semibold">{displayName}</p>
-              <p className="text-xs text-[#69736f]">Obstetrician</p>
+              <p className="text-xs text-[#69736f]">{doctorProfile.specialty}</p>
             </div>
           </div>
         </div>
@@ -107,7 +265,7 @@ const Doctordashboard = () => {
           ))}
         </nav>
 
-        <div className="mt-auto border-t border-[#eee6e0] pt-5">
+        <div className="mt-auto border-t border-[#eee6e0] pt-5 space-y-1">
           <Link to="/doctor/profile" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#69736f] hover:bg-[#fff0ea] hover:text-[#b66d58]">
             <CircleHelp size={19} />
             Help Center
@@ -123,10 +281,6 @@ const Doctordashboard = () => {
             <Settings size={19} />
             Settings
           </button>
-          <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#b66d58] hover:bg-[#fff0ea]">
-            <LogOut size={19} />
-            Logout
-          </button>
         </div>
       </aside>
 
@@ -137,7 +291,7 @@ const Doctordashboard = () => {
           <button type="button" aria-label="Open menu" onClick={() => setSidebarOpen(true)} className="rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#c87861] lg:hidden"><Menu size={20} /></button>
           <div className="hidden sm:block">
             <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">Doctor workspace</p>
-            <h1 className="mt-1 font-serif text-2xl">Good morning, {firstName} <span aria-hidden="true">👋</span></h1>
+            <h1 className="mt-1 font-serif text-2xl">Good morning, {firstName} </h1>
           </div>
           <div className="relative ml-auto flex items-center gap-3">
             <button type="button" aria-label="Notifications" onClick={() => setNotificationsOpen((open) => !open)} className="relative rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#69736f] transition hover:border-[#e7b4a3] hover:text-[#c87861]">
@@ -165,40 +319,47 @@ const Doctordashboard = () => {
               <section className="grid gap-5 md:grid-cols-2">
                 <DashboardCard icon={UserRound} title="My Profile" accent="peach">
                   <InfoRow label="Name" value={displayName} />
-                  <InfoRow label="Specialty" value="Maternal care" />
-                  <InfoRow label="Clinic" value="PregnaCare Clinic" />
-                  <InfoRow label="Next Shift" value="Today · 9:00 AM" />
+                  <InfoRow label="Specialty" value={doctorProfile.specialty} />
+                  <InfoRow label="Clinic" value={doctorProfile.clinic} />
+                  <InfoRow label="Next Shift" value="Not set yet" />
                 </DashboardCard>
 
                 <DashboardCard icon={FileText} title="Patient Overview" accent="sage">
-                  <InfoRow label="Active patients" value="148" />
-                  <InfoRow label="New consults" value="12" />
-                  <InfoRow label="Follow-ups" value="27" />
-                  <InfoRow label="This week" value="41 visits" />
+                  {activePatientCount === 0 ? (
+                    <div className="rounded-xl bg-[#edf3ef] p-4 text-center">
+                      <p className="text-sm font-semibold text-[#3d5a51]">No patients yet</p>
+                      <p className="mt-2 text-sm text-[#69736f]">Start by reviewing pending patient requests.</p>
+                      <button type="button" onClick={() => setActiveView("pendingPatients")} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#d98268] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c66f57]">Accept patients <ChevronRight size={14} /></button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <InfoRow label="Active patients" value={String(activePatientCount)} />
+                      <InfoRow label="Needs review" value={String(Math.max(activePatientCount, 0))} />
+                      <InfoRow label="Next appointment" value={activePatientCount > 0 ? "Awaiting booking" : "No booking yet"} />
+                      <button type="button" onClick={() => setActiveView("patients")} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#d98268] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c66f57]">View patient list <ChevronRight size={14} /></button>
+                    </div>
+                  )}
                 </DashboardCard>
 
                 <DashboardCard icon={CalendarDays} title="Appointments" accent="cream">
-                  <div className="flex items-center justify-between rounded-xl bg-[#fff8f4] p-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[#c87861]">Upcoming</p>
-                      <p className="mt-1 font-semibold">Prenatal review</p>
-                      <p className="mt-1 text-sm text-[#69736f]">Thursday, 10:30 AM</p>
+                  {acceptedAppointments.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-[#e7d2c7] bg-[#fff8f4] p-4 text-center">
+                      <p className="text-sm font-semibold text-[#3b4944]">No appointments yet</p>
+                      <p className="mt-2 text-sm text-[#69736f]">Your schedule will appear after an appointment is accepted.</p>
                     </div>
-                    <ChevronRight size={19} className="text-[#c87861]" />
-                  </div>
-                  <button type="button" onClick={() => setActiveView("appointments")} className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#c87861]">View schedule <ChevronRight size={16} /></button>
+                  ) : (
+                    <div className="rounded-xl border border-[#f0d9d0] bg-[#fff8f4] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">Booked</p>
+                      <p className="mt-2 text-sm font-semibold text-[#26322e]">{acceptedAppointments[0].patientName} booked an appointment</p>
+                      <p className="mt-1 text-sm text-[#69736f]">{acceptedAppointments[0].date}</p>
+                    </div>
+                  )}
                 </DashboardCard>
 
                 <DashboardCard icon={HeartPulse} title="Care Progress" accent="rose">
-                  <div id="timeline" className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-8 border-[#f4d8cd] text-sm font-bold text-[#b66d58]">74%</div>
-                    <div>
-                      <p className="font-semibold">Patient compliance is strong</p>
-                      <p className="mt-1 text-sm leading-6 text-[#69736f]">Most patients are keeping to their care plans and follow-ups.</p>
-                    </div>
-                  </div>
-                  <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#f0e3dd]">
-                    <div className="h-full w-[74%] rounded-full bg-[#d98268]" />
+                  <div className="rounded-xl border border-dashed border-[#efd4ca] bg-[#fff7f5] p-4 text-center">
+                    <p className="text-sm font-semibold text-[#3b4944]">No care progress yet</p>
+                    <p className="mt-2 text-sm text-[#69736f]">Progress updates will appear after patient visits begin.</p>
                   </div>
                 </DashboardCard>
               </section>
@@ -228,12 +389,26 @@ const Doctordashboard = () => {
           {activeView !== "dashboard" && (
             <WorkspaceView
               view={activeView}
+              setActiveView={setActiveView}
               patientQuery={patientQuery}
               setPatientQuery={setPatientQuery}
               filteredPatients={filteredPatients}
+              pendingPatients={pendingPatients}
+              acceptedPatients={acceptedPatients}
+              handlePendingPatientDecision={handlePendingPatientDecision}
+              pendingAppointments={pendingAppointments}
+              acceptedAppointments={acceptedAppointments}
+              handleAppointmentDecision={handleAppointmentDecision}
+              startConsultation={startConsultation}
               profileSaved={profileSaved}
               setProfileSaved={setProfileSaved}
+              preferences={preferences}
+              setPreferences={setPreferences}
               displayName={displayName}
+              doctorProfile={doctorProfile}
+              setDoctorProfile={setDoctorProfile}
+              savedUser={savedUser}
+              handleLogout={handleLogout}
             />
           )}
         </div>
@@ -242,42 +417,131 @@ const Doctordashboard = () => {
   );
 };
 
-const WorkspaceView = ({ view, patientQuery, setPatientQuery, filteredPatients, profileSaved, setProfileSaved, displayName }) => {
+const WorkspaceView = ({
+  view,
+  setActiveView,
+  patientQuery,
+  setPatientQuery,
+  filteredPatients,
+  pendingPatients,
+  acceptedPatients,
+  handlePendingPatientDecision,
+  pendingAppointments,
+  acceptedAppointments,
+  handleAppointmentDecision,
+  startConsultation,
+  profileSaved,
+  setProfileSaved,
+  preferences,
+  setPreferences,
+  displayName,
+  doctorProfile,
+  setDoctorProfile,
+  savedUser,
+  handleLogout,
+}) => {
+  if (view === "patients" || view === "pendingPatients") {
+    return <Patients view={view} setActiveView={setActiveView} patientQuery={patientQuery} setPatientQuery={setPatientQuery} filteredPatients={filteredPatients} pendingPatients={pendingPatients} handlePendingPatientDecision={handlePendingPatientDecision} />;
+  }
+
+  if (view === "appointments") {
+    return <Appointments pendingAppointments={pendingAppointments} acceptedAppointments={acceptedAppointments} handleAppointmentDecision={handleAppointmentDecision} startConsultation={startConsultation} />;
+  }
+
+  if (view === "profile") {
+    return <DoctorProfile doctorProfile={doctorProfile} setDoctorProfile={setDoctorProfile} savedUser={savedUser} profileSaved={profileSaved} setProfileSaved={setProfileSaved} handleLogout={handleLogout} />;
+  }
+
   if (view === "patients") {
     return (
       <section>
         <WorkspaceHeading eyebrow="Care team" title="Patient overview" text="Stay on top of follow-ups, consultations, and routine monitoring." />
         <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
-          <div className="relative">
-            <Search size={18} className="absolute left-4 top-3.5 text-[#9aa09c]" />
-            <input
-              value={patientQuery}
-              onChange={(event) => setPatientQuery(event.target.value)}
-              placeholder="Search patients, conditions, or visit status"
-              className="w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] py-3 pl-11 pr-4 text-sm outline-none focus:border-[#d98268]"
-            />
-          </div>
+          {filteredPatients.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#e9d4cc] bg-[#fffaf8] p-8 text-center">
+              <p className="font-serif text-3xl text-[#26322e]">No patients yet</p>
+              <p className="mt-3 text-sm leading-6 text-[#69736f]">Once you accept a patient request, they will appear here.</p>
+              <button
+                type="button"
+                onClick={() => setActiveView("pendingPatients")}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#d98268] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#c66f57]"
+              >
+                Accept patients <ChevronRight size={16} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search size={18} className="absolute left-4 top-3.5 text-[#9aa09c]" />
+                  <input
+                    value={patientQuery}
+                    onChange={(event) => setPatientQuery(event.target.value)}
+                    placeholder="Search patients, conditions, or visit status"
+                    className="w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] py-3 pl-11 pr-4 text-sm outline-none focus:border-[#d98268]"
+                  />
+                </div>
+                <button type="button" onClick={() => setActiveView("pendingPatients")} className="inline-flex items-center gap-2 rounded-xl bg-[#d98268] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#c66f57]">
+                  Pending requests
+                </button>
+              </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {filteredPatients.map((patient) => (
-              <article key={patient.name} className="rounded-2xl border border-[#eadfd9] bg-[#fffdfb] p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {filteredPatients.map((patient) => (
+                  <article key={`${patient.name}-${patient.visit}`} className="rounded-2xl border border-[#eadfd9] bg-[#fffdfb] p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-serif text-xl">{patient.name}</h3>
+                        <p className="mt-1 text-sm text-[#69736f]">Age {patient.age}</p>
+                      </div>
+                      <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-[11px] font-bold text-[#b66d58]">{patient.status}</span>
+                    </div>
+                    <div className="mt-4 space-y-3 text-sm text-[#69736f]">
+                      <p><span className="font-semibold text-[#3b4944]">Condition:</span> {patient.condition}</p>
+                      <p><span className="font-semibold text-[#3b4944]">Visit:</span> {patient.visit}</p>
+                    </div>
+                    <button type="button" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#d98268] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c66f57]">Review chart <ChevronRight size={14} /></button>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (view === "pendingPatients") {
+    return (
+      <section>
+        <WorkspaceHeading eyebrow="Access requests" title="Pending patient requests" text="Review patient requests and decide who to accept into your care list." />
+        <div className="grid gap-4 lg:grid-cols-2">
+          {pendingPatients.length === 0 ? (
+            <div className="col-span-full rounded-2xl border border-dashed border-[#e9d4cc] bg-[#fffaf8] p-8 text-center">
+              <p className="font-serif text-3xl text-[#26322e]">No pending requests</p>
+              <p className="mt-3 text-sm text-[#69736f]">When a patient requests care, they will appear here for review.</p>
+            </div>
+          ) : (
+            pendingPatients.map((request) => (
+              <article key={request.id} className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-serif text-xl">{patient.name}</h3>
-                    <p className="mt-1 text-sm text-[#69736f]">Age {patient.age}</p>
+                    <h3 className="font-serif text-2xl">{request.name}</h3>
+                    <p className="mt-1 text-sm text-[#69736f]">Age {request.age}</p>
                   </div>
-                  <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-[11px] font-bold text-[#b66d58]">{patient.status}</span>
+                  <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-[11px] font-bold text-[#b66d58]">Pending</span>
                 </div>
                 <div className="mt-4 space-y-3 text-sm text-[#69736f]">
-                  <p><span className="font-semibold text-[#3b4944]">Condition:</span> {patient.condition}</p>
-                  <p><span className="font-semibold text-[#3b4944]">Visit:</span> {patient.visit}</p>
+                  <p><span className="font-semibold text-[#3b4944]">Request:</span> {request.reason}</p>
+                  <p><span className="font-semibold text-[#3b4944]">Requested:</span> {request.requestedAt}</p>
                 </div>
-                <button type="button" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#d98268] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c66f57]">Review chart <ChevronRight size={14} /></button>
+                <div className="mt-5 flex gap-3">
+                  <button type="button" onClick={() => handlePendingPatientDecision(request.id, "accept")} className="flex-1 rounded-xl bg-[#d98268] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c66f57]">Accept</button>
+                  <button type="button" onClick={() => handlePendingPatientDecision(request.id, "decline")} className="flex-1 rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2.5 text-sm font-semibold text-[#8b645c] transition hover:bg-[#fdf0eb]">Decline</button>
+                </div>
               </article>
-            ))}
-
-            {filteredPatients.length === 0 && <p className="col-span-full py-6 text-center text-sm text-[#69736f]">No patients match your search.</p>}
-          </div>
+            ))
+          )}
         </div>
       </section>
     );
@@ -286,23 +550,62 @@ const WorkspaceView = ({ view, patientQuery, setPatientQuery, filteredPatients, 
   if (view === "appointments") {
     return (
       <section>
-        <WorkspaceHeading eyebrow="Care calendar" title="Your appointments" text="Review your upcoming consultations and scheduled patient visits." />
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
-            <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">Upcoming</p>
-            <h2 className="mt-2 font-serif text-2xl">Prenatal check-up</h2>
-            <p className="mt-4 text-sm text-[#69736f]">Thursday, September 24 · 10:30 AM</p>
-            <p className="mt-2 text-sm text-[#69736f]">With Ms. Amina Yusuf · Room 4</p>
-            <span className="mt-5 inline-flex rounded-full bg-[#edf3ef] px-3 py-1 text-xs font-semibold text-[#6f9387]">Confirmed</span>
+        <WorkspaceHeading eyebrow="Care calendar" title="Your appointments" text="Review appointment requests, confirmed bookings, and schedule updates." />
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="font-serif text-2xl">Pending appointment requests</h3>
+              <button type="button" onClick={() => alert("Schedule new appointment feature coming soon")} className="inline-flex items-center gap-2 rounded-lg bg-[#d98268] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c66f57]">+ Schedule</button>
+            </div>
+            {pendingAppointments.length === 0 ? (
+              <p className="mt-4 text-sm text-[#69736f]">No pending appointment requests.</p>
+            ) : (
+              <div className="mt-4 grid gap-4">
+                {pendingAppointments.map((appointment) => (
+                  <div key={appointment.id} className="relative rounded-2xl border border-[#eadfd9] bg-[#fffdfb] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-[#26322e]">{appointment.patientName}</p>
+                        <p className="mt-1 text-sm text-[#69736f]">{appointment.reason}</p>
+                      </div>
+                      <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-[11px] font-bold text-[#b66d58]">Pending</span>
+                    </div>
+                    <p className="mt-3 text-sm text-[#69736f]">Requested: {appointment.requestedAt}</p>
+                    <p className="text-sm text-[#69736f]">Preferred time: {appointment.date}</p>
+                    <div className="mt-4 flex gap-3">
+                      <button type="button" onClick={() => handleAppointmentDecision(appointment.id, "accept")} className="flex-1 rounded-xl bg-[#d98268] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c66f57]">Accept</button>
+                      <button type="button" onClick={() => handleAppointmentDecision(appointment.id, "decline")} className="flex-1 rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2.5 text-sm font-semibold text-[#8b645c] transition hover:bg-[#fdf0eb]">Decline</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
-            <h2 className="font-serif text-2xl">Today’s agenda</h2>
-            <div className="mt-5 space-y-4">
-              <AgendaRow time="9:00 AM" title="Consultation review" />
-              <AgendaRow time="11:00 AM" title="Lab follow-up" />
-              <AgendaRow time="2:30 PM" title="Patient education session" />
-            </div>
+          <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+            <h3 className="font-serif text-2xl">Accepted appointments</h3>
+            {acceptedAppointments.length === 0 ? (
+              <p className="mt-4 text-sm text-[#69736f]">No accepted appointments yet.</p>
+            ) : (
+              <div className="mt-4 grid gap-4">
+                {acceptedAppointments.map((appointment) => (
+                  <div key={appointment.id} className="rounded-2xl border border-[#eadfd9] bg-[#fffdfb] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-[#26322e]">{appointment.patientName}</p>
+                        <p className="mt-1 text-sm text-[#69736f]">{appointment.reason}</p>
+                      </div>
+                      <span className="rounded-full bg-[#edf3ef] px-2 py-1 text-[11px] font-bold text-[#6f9387]">Accepted</span>
+                    </div>
+                    <p className="mt-3 text-sm text-[#69736f]">Date: {appointment.date}</p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button type="button" onClick={() => handleAppointmentDecision(appointment.id, "decline")} className="inline-flex items-center rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2 text-sm font-semibold text-[#8b645c] transition hover:bg-[#fdf0eb]">Decline appointment</button>
+                      <button type="button" onClick={() => startConsultation(appointment)} className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#26322e] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-[#3b4944]">Start consultation <ChevronRight size={16} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -313,25 +616,28 @@ const WorkspaceView = ({ view, patientQuery, setPatientQuery, filteredPatients, 
     return (
       <section>
         <WorkspaceHeading eyebrow="Care plans" title="Treatment plans" text="Keep each patient journey structured and consistent." />
-        <div className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
-          <div className="space-y-4">
-            <PlanRow title="Prenatal monitoring" detail="Daily hydration check, weekly blood pressure review, and nutrition follow-up." />
-            <PlanRow title="Lab tracking" detail="Monitor iron levels, blood work, and vitamin supplementation notes." />
-            <PlanRow title="Patient education" detail="Share reminders for appointments, sleep hygiene, and activity guidelines." />
-          </div>
+        <div className="rounded-2xl border border-dashed border-[#e9d4cc] bg-[#fffaf8] p-10 text-center shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+          <p className="font-serif text-3xl text-[#26322e]">No care progress yet</p>
+          <p className="mt-3 text-sm leading-6 text-[#69736f]">Care plans and progress updates will appear here as soon as you begin seeing patients.</p>
         </div>
       </section>
     );
   }
 
   if (view === "reports") {
+    const totalAcceptedAppointments = acceptedAppointments.length;
+    const totalPendingAppointments = pendingAppointments.length;
+    const totalAcceptedPatients = acceptedPatients.length;
+    const totalDeclined = pendingPatients.length;
+    const careScore = totalAcceptedAppointments > 0 ? Math.round((totalAcceptedAppointments / (totalAcceptedAppointments + totalDeclined + 1)) * 100) : 0;
+
     return (
       <section>
         <WorkspaceHeading eyebrow="Insights" title="Performance reports" text="Measure activity across consultations, reassessments, and care outcomes." />
         <div className="grid gap-5 lg:grid-cols-3">
-          <ReportCard title="Consultations" value="41" note="This week" />
-          <ReportCard title="Follow-ups" value="27" note="Scheduled" />
-          <ReportCard title="Care score" value="94%" note="Patient satisfaction" />
+          <ReportCard title="Consultations" value={String(totalAcceptedAppointments)} note="Accepted" />
+          <ReportCard title="Follow-ups" value={String(totalPendingAppointments)} note="Pending" />
+          <ReportCard title="Care score" value={`${careScore}%`} note="Acceptance rate" />
         </div>
       </section>
     );
@@ -343,11 +649,11 @@ const WorkspaceView = ({ view, patientQuery, setPatientQuery, filteredPatients, 
         <WorkspaceHeading eyebrow="Workspace settings" title="Settings" text="Adjust notifications and preferences for your clinical schedule." />
         <div className="max-w-3xl rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)] sm:p-8">
           <div className="divide-y divide-[#f0e8e3]">
-            <SettingRow title="Appointment reminders" text="Receive reminders before patient visits." />
-            <SettingRow title="Care plan updates" text="Get alerts for any patient checklist changes." />
-            <SettingRow title="Email notifications" text="Receive important updates for your clinical schedule." />
+            <SettingRow title="Appointment reminders" text="Receive reminders before patient visits." checked={preferences.appointmentReminders} onChange={(checked) => setPreferences((current) => ({ ...current, appointmentReminders: checked }))} />
+            <SettingRow title="Care plan updates" text="Get alerts for any patient checklist changes." checked={preferences.carePlanUpdates} onChange={(checked) => setPreferences((current) => ({ ...current, carePlanUpdates: checked }))} />
+            <SettingRow title="Email notifications" text="Receive important updates for your clinical schedule." checked={preferences.emailNotifications} onChange={(checked) => setPreferences((current) => ({ ...current, emailNotifications: checked }))} />
           </div>
-          <button type="button" onClick={() => setProfileSaved(true)} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#d98268] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c66f57]">
+          <button type="button" onClick={() => { localStorage.setItem("doctorDashboardPreferences", JSON.stringify(preferences)); setProfileSaved(true); window.setTimeout(() => setProfileSaved(false), 2200); }} className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#d98268] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c66f57]">
             <Save size={17} />
             {profileSaved ? "Settings saved" : "Save settings"}
           </button>
@@ -356,23 +662,86 @@ const WorkspaceView = ({ view, patientQuery, setPatientQuery, filteredPatients, 
     );
   }
 
-  return (
-    <section>
-      <WorkspaceHeading eyebrow="Your information" title="My profile" text="Keep your professional details and availability updated." />
-      <form onSubmit={(event) => { event.preventDefault(); setProfileSaved(true); window.setTimeout(() => setProfileSaved(false), 2200); }} className="max-w-3xl rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)] sm:p-8">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <label className="text-sm font-semibold">Full name<input defaultValue={displayName} className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]" /></label>
-          <label className="text-sm font-semibold">Email address<input defaultValue="grace@pregnacare.com" type="email" className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]" /></label>
-          <label className="text-sm font-semibold">Phone number<input defaultValue="+234 801 234 5678" className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]" /></label>
-          <label className="text-sm font-semibold">Clinic<input defaultValue="PregnaCare Clinic" className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]" /></label>
-        </div>
-        <button type="submit" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#d98268] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c66f57]">
-          <Save size={17} />
-          {profileSaved ? "Saved" : "Save changes"}
+  if (view === "profile") {
+    return (
+      <section>
+        <WorkspaceHeading eyebrow="Your information" title="My profile" text="Keep your professional details and availability updated." />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+
+            const updatedUser = {
+              ...savedUser,
+              name: doctorProfile.name,
+              email: doctorProfile.email,
+              phone: doctorProfile.phone,
+              clinic: doctorProfile.clinic,
+              clinicName: doctorProfile.clinic,
+              specialty: doctorProfile.specialty,
+            };
+
+            localStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+            localStorage.setItem("doctorUser", JSON.stringify(updatedUser));
+            setProfileSaved(true);
+            window.setTimeout(() => setProfileSaved(false), 2200);
+          }}
+          className="max-w-3xl rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)] sm:p-8"
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="text-sm font-semibold">
+              Full name
+              <input
+                value={doctorProfile.name}
+                onChange={(event) => setDoctorProfile((current) => ({ ...current, name: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+              />
+            </label>
+            <label className="text-sm font-semibold">
+              Email address
+              <input
+                value={doctorProfile.email}
+                type="email"
+                onChange={(event) => setDoctorProfile((current) => ({ ...current, email: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+              />
+            </label>
+            <label className="text-sm font-semibold">
+              Phone number
+              <input
+                value={doctorProfile.phone}
+                onChange={(event) => setDoctorProfile((current) => ({ ...current, phone: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+              />
+            </label>
+            <label className="text-sm font-semibold">
+              Clinic
+              <input
+                value={doctorProfile.clinic}
+                onChange={(event) => setDoctorProfile((current) => ({ ...current, clinic: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+              />
+            </label>
+            <label className="text-sm font-semibold sm:col-span-2">
+              Specialty
+              <input
+                value={doctorProfile.specialty}
+                onChange={(event) => setDoctorProfile((current) => ({ ...current, specialty: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+              />
+            </label>
+          </div>
+          <button type="submit" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#d98268] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c66f57]">
+            <Save size={17} />
+            {profileSaved ? "Saved" : "Save changes"}
+          </button>
+        </form>
+        <button type="button" onClick={handleLogout} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#e74c3c] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c0392b]">
+          <LogOut size={17} />
+          Logout
         </button>
-      </form>
-    </section>
-  );
+      </section>
+    );
+  }
 };
 
 const AgendaRow = ({ time, title }) => (
@@ -400,13 +769,13 @@ const ReportCard = ({ title, value, note }) => (
   </div>
 );
 
-const SettingRow = ({ title, text }) => (
+const SettingRow = ({ title, text, checked, onChange }) => (
   <label className="flex cursor-pointer items-center justify-between gap-5 py-5">
     <span>
       <span className="block font-semibold">{title}</span>
       <span className="mt-1 block text-sm leading-6 text-[#69736f]">{text}</span>
     </span>
-    <input type="checkbox" defaultChecked className="h-5 w-5 accent-[#d98268]" />
+    <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-[#d98268]" />
   </label>
 );
 

@@ -7,6 +7,7 @@ import PatientAppointments from './Pages/Patient/patientappointments'
 import PatientProfile from './Pages/Patient/patientprofile'
 import PatientDoctors from './Pages/Patient/doctors'
 import Doctordashboard from './Pages/Doctor/doctordashboard'
+import Consultation from './Pages/Consultation/consultation'
 
 const App = () => {
   return (
@@ -21,6 +22,7 @@ const App = () => {
         <Route path="/patient/profile" element={<PatientProfile />} />
         <Route path="/patient/doctors" element={<PatientDoctors />} />
         <Route path="/doctor" element={<Doctordashboard />} />
+        <Route path="/consultation/:roomName" element={<Consultation />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </BrowserRouter>

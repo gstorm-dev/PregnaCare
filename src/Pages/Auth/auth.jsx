@@ -55,11 +55,6 @@ const AuthPage = ({ mode, role }) => {
       return;
     }
 
-    if (role === "doctor" && savedUser.status === "pending_verification") {
-      setError("Your application is currently pending admin verification. Please wait for approval before signing in.");
-      return;
-    }
-
     localStorage.setItem("loggedInUser", JSON.stringify(savedUser));
     navigate(role === "doctor" ? "/doctor" : "/patient");
   };
@@ -76,6 +71,7 @@ const AuthPage = ({ mode, role }) => {
       status: "pending_verification",
       licenseNumber,
       specialty,
+      clinic: clinicName,
       clinicName,
       experience,
       submittedAt: new Date().toISOString(),
@@ -196,7 +192,7 @@ const AuthPage = ({ mode, role }) => {
             </form>
           )}
 
-         
+
           {accountCreated && !applicationSent && !credentialsStep && (
             <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
               Your account has been created successfully. Please sign in to continue.
