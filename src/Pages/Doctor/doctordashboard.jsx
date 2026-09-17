@@ -21,9 +21,6 @@ import {
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import DoctorProfile from "./doctorprofile";
-import Patients from "./patients";
-import Appointments from "./appointments";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
@@ -440,18 +437,6 @@ const WorkspaceView = ({
   savedUser,
   handleLogout,
 }) => {
-  if (view === "patients" || view === "pendingPatients") {
-    return <Patients view={view} setActiveView={setActiveView} patientQuery={patientQuery} setPatientQuery={setPatientQuery} filteredPatients={filteredPatients} pendingPatients={pendingPatients} handlePendingPatientDecision={handlePendingPatientDecision} />;
-  }
-
-  if (view === "appointments") {
-    return <Appointments pendingAppointments={pendingAppointments} acceptedAppointments={acceptedAppointments} handleAppointmentDecision={handleAppointmentDecision} startConsultation={startConsultation} />;
-  }
-
-  if (view === "profile") {
-    return <DoctorProfile doctorProfile={doctorProfile} setDoctorProfile={setDoctorProfile} savedUser={savedUser} profileSaved={profileSaved} setProfileSaved={setProfileSaved} handleLogout={handleLogout} />;
-  }
-
   if (view === "patients") {
     return (
       <section>
