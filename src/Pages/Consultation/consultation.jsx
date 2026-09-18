@@ -9,13 +9,20 @@ const Consultation = () => {
     <main className="min-h-screen bg-[#26322e] p-4 text-white sm:p-6">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 pb-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#d98268]"><Video size={20} /></span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#d98268]">
+            <Video size={20} />
+          </span>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#f2c8b8]">PregnaCare</p>
+            <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#f2c8b8]">
+              PregnaCare
+            </p>
             <h1 className="font-serif text-xl">Video consultation</h1>
           </div>
         </div>
-        <Link to="/doctor" className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold transition hover:bg-white/10">
+        <Link
+          to="/doctor"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold transition hover:bg-white/10"
+        >
           <ArrowLeft size={17} /> Back to dashboard
         </Link>
       </div>

@@ -108,16 +108,11 @@ const Home = () => {
       <Navbar />
 
       <section className="relative overflow-hidden bg-[#fff3ef]">
-
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-175 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-24">
           <div className="max-w-2xl">
-            
-
             <h1 className="font-serif text-4xl leading-[1.02] tracking-tight text-[#26322e] sm:text-5xl md:text-6xl lg:text-7xl">
               Pregnancy care,
-              <span className="block text-[#c87861]">
-                made simpler.
-              </span>
+              <span className="block text-[#c87861]">made simpler.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-7 text-[#69736f] sm:text-lg sm:leading-8">
@@ -222,7 +217,6 @@ const Home = () => {
               </div>
             </div>
 
-
             <div className="absolute -right-4 bottom-20 hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-xl sm:block lg:-right-8">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
@@ -243,17 +237,15 @@ const Home = () => {
       <section className="border-y border-slate-100 bg-white">
         <div className="mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-4">
           <div className="border-b border-slate-100 px-5 py-7 text-center md:border-b-0 md:border-r">
-            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">
-              10K+
-            </p>
+            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">10K+</p>
             <p className="mt-1 text-sm text-slate-500">Patients supported</p>
           </div>
 
           <div className="border-b border-slate-100 px-5 py-7 text-center md:border-b-0 md:border-r">
-            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">
-              500+
+            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">500+</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Healthcare professionals
             </p>
-            <p className="mt-1 text-sm text-slate-500">Healthcare professionals</p>
           </div>
 
           <div className="border-r border-slate-100 px-5 py-7 text-center">
@@ -264,16 +256,17 @@ const Home = () => {
           </div>
 
           <div className="px-5 py-7 text-center">
-            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">
-              98%
-            </p>
+            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">98%</p>
             <p className="mt-1 text-sm text-slate-500">Patient satisfaction</p>
           </div>
         </div>
       </section>
 
       {/* ABOUT */}
-      <section id="about" className="scroll-mt-24 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <section
+        id="about"
+        className="scroll-mt-24 px-5 py-20 sm:px-6 lg:px-8 lg:py-28"
+      >
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="relative">
             <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -322,9 +315,9 @@ const Home = () => {
             </p>
 
             <p className="mt-4 leading-8 text-slate-600">
-              PregnaCare brings these experiences together so patients can
-              focus on what matters most — taking care of themselves and their
-              growing families.
+              PregnaCare brings these experiences together so patients can focus
+              on what matters most — taking care of themselves and their growing
+              families.
             </p>
 
             <div className="mt-7 space-y-4">
@@ -356,7 +349,10 @@ const Home = () => {
       </section>
 
       {/* SERVICES */}
-      <section id="services" className="scroll-mt-24 bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <section
+        id="services"
+        className="scroll-mt-24 bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
@@ -452,7 +448,11 @@ const Home = () => {
                   />
 
                   <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-slate-900 shadow">
-                    <Star size={14} fill="currentColor" className="text-amber-400" />
+                    <Star
+                      size={14}
+                      fill="currentColor"
+                      className="text-amber-400"
+                    />
                     {doctor.rating}
                   </div>
 
@@ -512,8 +512,8 @@ const Home = () => {
             </h2>
 
             <p className="mt-5 max-w-xl leading-7 text-blue-100">
-              From creating your account to managing your care, PregnaCare
-              keeps your journey simple and organized.
+              From creating your account to managing your care, PregnaCare keeps
+              your journey simple and organized.
             </p>
           </div>
 
@@ -648,9 +648,7 @@ const Home = () => {
                 </p>
 
                 <div className="mt-7 border-t border-slate-100 pt-5">
-                  <p className="font-bold text-slate-950">
-                    {testimonial.name}
-                  </p>
+                  <p className="font-bold text-slate-950">{testimonial.name}</p>
 
                   <p className="mt-1 text-sm text-slate-500">
                     {testimonial.role}

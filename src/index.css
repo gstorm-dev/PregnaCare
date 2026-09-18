@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+.patient-dashboard button {
+  cursor: pointer;
+}
