@@ -13,22 +13,11 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/patient/login"
-          element={<AuthPage mode="login" role="patient" />}
-        />
-        <Route
-          path="/doctor/login"
-          element={<AuthPage mode="login" role="doctor" />}
-        />
-        <Route
-          path="/patient/signup"
-          element={<AuthPage mode="signup" role="patient" />}
-        />
-        <Route
-          path="/doctor/signup"
-          element={<AuthPage mode="signup" role="doctor" />}
-        />
+        <Route path="/patient/login" element={<AuthPage mode="login" role="patient" />} />
+        <Route path="/doctor/login" element={<AuthPage mode="login" role="doctor" />} />
+        <Route path="/patient/signup" element={<AuthPage mode="signup" role="patient" />} />
+        <Route path="/doctor/signup" element={<AuthPage mode="signup" role="doctor" />} />
+        
         <Route path="/patient" element={<PatientDashboard />} />
         <Route path="/patient/appointments" element={<PatientAppointments />} />
         <Route path="/patient/profile" element={<PatientProfile />} />
