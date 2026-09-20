@@ -37,29 +37,7 @@ const navItems = [
   { label: "Reports", icon: Activity, view: "reports" },
 ];
 
-const initialPendingRequests = [
-  {
-    id: 1,
-    name: "Amina Yusuf",
-    age: 28,
-    reason: "Prenatal check-in",
-    requestedAt: "Today, 9:15 AM",
-  },
-  {
-    id: 2,
-    name: "Grace Thompson",
-    age: 32,
-    reason: "Blood pressure follow-up",
-    requestedAt: "Today, 11:40 AM",
-  },
-  {
-    id: 3,
-    name: "Sarah Okafor",
-    age: 26,
-    reason: "Nutrition consultation",
-    requestedAt: "Tomorrow, 8:30 AM",
-  },
-];
+const initialPendingRequests = [];
 
 const getConsultationRoomName = (appointment) => {
   const patientName = appointment.patientName
@@ -116,10 +94,10 @@ const Doctordashboard = () => {
     }
   });
   const [pendingPatients, setPendingPatients] = useState(() =>
-    getStoredList("pendingPatients", initialPendingRequests),
+    [],
   );
   const [acceptedPatients, setAcceptedPatients] = useState(() =>
-    getStoredList("acceptedPatients", []),
+    [],
   );
   const [pendingAppointments, setPendingAppointments] = useState([]);
   const [acceptedAppointments, setAcceptedAppointments] = useState([]);
@@ -132,7 +110,8 @@ const Doctordashboard = () => {
       return {
         name: storedUser?.name || "",
         email: storedUser?.email || "",
-        phone: storedUser?.phone || "",
+        phone: storedUser?.phone || storedUser?.contactInfo || "",
+        contactInfo: storedUser?.contactInfo || storedUser?.phone || "",
         clinic: storedUser?.clinic || storedUser?.clinicName || "",
         specialty: storedUser?.specialty || "",
       };
@@ -141,6 +120,7 @@ const Doctordashboard = () => {
         name: "",
         email: "",
         phone: "",
+        contactInfo: "",
         clinic: "",
         specialty: "",
       };
@@ -190,11 +170,8 @@ const Doctordashboard = () => {
       const appointments = getAppointments();
       const doctorAppointments = appointments.filter(
         (appointment) =>
-          (appointment.doctorEmail &&
-            appointment.doctorEmail === doctorProfile.email) ||
-          (!appointment.doctorEmail &&
-            appointment.doctorName === displayName) ||
-          (!appointment.doctorEmail && !appointment.doctorName),
+          appointment.doctorEmail &&
+          appointment.doctorEmail === doctorProfile.email,
       );
       setPendingAppointments(
         doctorAppointments.filter(
@@ -218,7 +195,7 @@ const Doctordashboard = () => {
         "pregnacare:appointments-updated",
         syncAppointments,
       );
-  }, [displayName, doctorProfile.email]);
+  }, [doctorProfile.email]);
 
   const notifyDoctorConsultationReady = (appointment) => {
     window.alert(
@@ -1121,7 +1098,8 @@ const WorkspaceView = ({
               ...savedUser,
               name: doctorProfile.name,
               email: doctorProfile.email,
-              phone: doctorProfile.phone,
+              phone: doctorProfile.phone || doctorProfile.contactInfo,
+              contactInfo: doctorProfile.contactInfo || doctorProfile.phone,
               clinic: doctorProfile.clinic,
               clinicName: doctorProfile.clinic,
               specialty: doctorProfile.specialty,
@@ -1165,11 +1143,12 @@ const WorkspaceView = ({
             <label className="text-sm font-semibold">
               Phone number
               <input
-                value={doctorProfile.phone}
+                value={doctorProfile.phone || doctorProfile.contactInfo || ""}
                 onChange={(event) =>
                   setDoctorProfile((current) => ({
                     ...current,
                     phone: event.target.value,
+                    contactInfo: event.target.value,
                   }))
                 }
                 className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"

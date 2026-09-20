@@ -14,6 +14,7 @@ const AuthPage = ({ mode, role }) => {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [clinicName, setClinicName] = useState("");
+  const [contactInfo, setContactInfo] = useState("");
   const [experience, setExperience] = useState("");
   const [credentialsStep, setCredentialsStep] = useState(false);
   const [applicationSent, setApplicationSent] = useState(false);
@@ -65,6 +66,9 @@ const AuthPage = ({ mode, role }) => {
     }
 
     localStorage.setItem("loggedInUser", JSON.stringify(savedUser));
+    if (role === "doctor") {
+      localStorage.setItem("doctorUser", JSON.stringify(savedUser));
+    }
     navigate(role === "doctor" ? "/doctor" : "/patient");
   };
 
@@ -82,6 +86,8 @@ const AuthPage = ({ mode, role }) => {
       specialty,
       clinic: clinicName,
       clinicName,
+      phone: contactInfo,
+      contactInfo,
       experience,
       submittedAt: new Date().toISOString(),
     };
@@ -97,6 +103,8 @@ const AuthPage = ({ mode, role }) => {
       licenseNumber,
       specialty,
       clinicName,
+      phone: contactInfo,
+      contactInfo,
       experience,
       submittedAt: new Date().toISOString(),
       status: "pending_verification",
@@ -178,6 +186,17 @@ const AuthPage = ({ mode, role }) => {
                   required
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
                   placeholder="Clinic or hospital name"
+                />
+              </label>
+
+              <label className="block text-sm font-semibold text-slate-700">
+                Contact information
+                <input
+                  value={contactInfo}
+                  onChange={(event) => setContactInfo(event.target.value)}
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="e.g. +234 801 234 5678"
                 />
               </label>
 

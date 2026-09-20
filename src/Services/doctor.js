@@ -5,6 +5,7 @@ export let doctorProfile = {
   initials: "DB",
   email: "dr.bello@pregnacare.com",
   phone: "+234 800 000 0000",
+  contactInfo: "+234 800 000 0000",
   clinic: "PregnaCare Clinic",
   location: "Lagos, Nigeria",
   availability: "Available today",
@@ -12,35 +13,64 @@ export let doctorProfile = {
   status: "On duty",
 };
 
-export const doctors = [
-  {
-    id: "DOC-001",
-    name: "Dr. Bello",
-    specialty: "Obstetrician",
-    initials: "DB",
-    rating: 5,
-    tone: "bg-blue-100 text-blue-700",
-    availability: "Available today",
-  },
-  {
-    id: "DOC-002",
-    name: "Dr. Ada Okafor",
-    specialty: "Maternal Health Specialist",
-    initials: "AO",
-    rating: 4,
-    tone: "bg-amber-100 text-amber-700",
-    availability: "Next slot 11:00 AM",
-  },
-  {
-    id: "DOC-003",
-    name: "Dr. Nneka Eze",
-    specialty: "Fetal Medicine",
-    initials: "NE",
-    rating: 5,
-    tone: "bg-emerald-100 text-emerald-700",
-    availability: "Available this afternoon",
-  },
+export const doctors = [];
+
+const defaultDoctorImages = [
+  "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=700&q=85",
+  "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=700&q=85",
+  "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=700&q=85",
+  "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=700&q=85",
+  "https://images.unsplash.com/photo-1618498082410-b4aa22193b38?auto=format&fit=crop&w=700&q=85",
 ];
+
+export const getAvailableDoctors = () => {
+  try {
+    const storedDoctorUser = JSON.parse(
+      localStorage.getItem("doctorUser") || "null",
+    );
+    const signedInDoctor = JSON.parse(
+      localStorage.getItem("loggedInUser") || "null",
+    );
+
+    const submittedDoctors = [
+      ...(storedDoctorUser && storedDoctorUser.role === "doctor"
+        ? [storedDoctorUser]
+        : []),
+      ...(signedInDoctor && signedInDoctor.role === "doctor"
+        ? [signedInDoctor]
+        : []),
+    ]
+      .filter(Boolean)
+      .filter((doctor) => doctor.name || doctor.email || doctor.specialty)
+      .map((doctor, index) => ({
+        id: doctor.id || doctor.email || `doctor-${index}`,
+        name: doctor.name || "Dr. Unknown",
+        specialty: doctor.specialty || "General Medicine",
+        location: doctor.clinic || doctor.clinicName || "Clinic",
+        experience: doctor.experience || "Available",
+        rating: doctor.rating || (index % 2 === 0 ? 4.9 : 4.8),
+        image: doctor.image || defaultDoctorImages[index % defaultDoctorImages.length],
+        nextSlot: doctor.nextSlot || "Available this week",
+        email: doctor.email || "",
+        phone: doctor.phone || doctor.contactInfo || "",
+        clinic: doctor.clinic || doctor.clinicName || "",
+      }));
+
+    const uniqueDoctors = Array.from(
+      new Map(
+        submittedDoctors.map((doctor) => [doctor.email || doctor.name, doctor]),
+      ).values(),
+    );
+
+    if (uniqueDoctors.length > 0) {
+      return uniqueDoctors;
+    }
+  } catch {
+    // fallback below
+  }
+
+  return [];
+};
 
 export let doctorAvailability = [
   {

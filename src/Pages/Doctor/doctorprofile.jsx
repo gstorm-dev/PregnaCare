@@ -21,7 +21,8 @@ const DoctorProfile = ({
           ...savedUser,
           name: doctorProfile.name,
           email: doctorProfile.email,
-          phone: doctorProfile.phone,
+          phone: doctorProfile.phone || doctorProfile.contactInfo,
+          contactInfo: doctorProfile.contactInfo || doctorProfile.phone,
           clinic: doctorProfile.clinic,
           clinicName: doctorProfile.clinic,
           specialty: doctorProfile.specialty,
@@ -51,9 +52,13 @@ const DoctorProfile = ({
         />
         <ProfileField
           label="Phone number"
-          value={doctorProfile.phone}
+          value={doctorProfile.phone || doctorProfile.contactInfo || ""}
           onChange={(value) =>
-            setDoctorProfile((current) => ({ ...current, phone: value }))
+            setDoctorProfile((current) => ({
+              ...current,
+              phone: value,
+              contactInfo: value,
+            }))
           }
         />
         <ProfileField

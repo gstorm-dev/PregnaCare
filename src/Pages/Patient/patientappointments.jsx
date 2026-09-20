@@ -6,19 +6,19 @@ import {
   getAppointments,
   removeAppointment,
 } from "../../Services/appointments";
-
-const doctors = {
-  1: "Dr. Sarah Johnson",
-  2: "Dr. Emily Williams",
-  3: "Dr. Michael Brown",
-  4: "Dr. Amina Bello",
-};
+import { getAvailableDoctors } from "../../Services/doctor";
 
 const PatientAppointments = () => {
   const [searchParams] = useSearchParams();
-  const [doctor, setDoctor] = useState(
-    doctors[searchParams.get("doctor")] || "Dr. Sarah Johnson",
-  );
+  const [doctorOptions, setDoctorOptions] = useState(getAvailableDoctors());
+  const [doctor, setDoctor] = useState(() => {
+    const requestedDoctor = searchParams.get("doctor");
+    const availableDoctors = getAvailableDoctors();
+    const matchedDoctor = availableDoctors.find(
+      (item) => String(item.email || item.id) === requestedDoctor,
+    );
+    return matchedDoctor?.name || availableDoctors[0]?.name || "";
+  });
   const [date, setDate] = useState("2026-09-24");
   const [time, setTime] = useState("10:30 AM");
   const [appointments, setAppointments] = useState([]);
@@ -59,16 +59,60 @@ const PatientAppointments = () => {
       );
   }, []);
 
+  useEffect(() => {
+    const availableDoctors = getAvailableDoctors();
+    setDoctorOptions((current) => {
+      const sameList =
+        current.length === availableDoctors.length &&
+        current.every(
+          (item, index) =>
+            item.name === availableDoctors[index]?.name &&
+            item.email === availableDoctors[index]?.email,
+        );
+      return sameList ? current : availableDoctors;
+    });
+
+    if (availableDoctors.length === 0) {
+      return;
+    }
+
+    const requestedDoctor = searchParams.get("doctor");
+    const matchedDoctor = availableDoctors.find(
+      (item) => String(item.email || item.id) === requestedDoctor,
+    );
+
+    if (matchedDoctor) {
+      setDoctor(matchedDoctor.name);
+      return;
+    }
+
+    setDoctor((current) => {
+      if (availableDoctors.some((item) => item.name === current)) {
+        return current;
+      }
+      return availableDoctors[0]?.name || "";
+    });
+  }, [searchParams]);
+
   const handleBooking = (event) => {
     event.preventDefault();
     const requestedAt = new Date().toLocaleString([], {
       dateStyle: "medium",
       timeStyle: "short",
     });
+    const selectedDoctor = doctorOptions.find((item) => item.name === doctor);
+
+    if (!selectedDoctor?.email) {
+      return;
+    }
+
     createAppointment({
       patientName: patient?.name || "Jane Doe",
       patientEmail: patient?.email || "",
-      doctorName: doctor,
+      doctorName: selectedDoctor?.name || doctor,
+      doctorEmail: selectedDoctor?.email || "",
+      doctorClinic: selectedDoctor?.clinic || selectedDoctor?.location || "",
+      doctorSpecialty: selectedDoctor?.specialty || "",
       reason: "Prenatal check-up",
       date: `${date} · ${time}`,
       scheduledAt: `${date}T${time === "10:30 AM" ? "10:30" : time === "2:00 PM" ? "14:00" : "16:30"}:00`,
@@ -141,12 +185,16 @@ const PatientAppointments = () => {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">
-                Mock booking
+                Live booking
               </p>
               <h2 className="font-serif text-2xl">Book a visit</h2>
             </div>
           </div>
-          {booked ? (
+          {doctorOptions.length === 0 ? (
+            <p className="mt-8 rounded-xl bg-[#fff8f4] p-5 text-sm text-[#69736f]">
+              No doctors are available yet. A doctor must sign in before you can request an appointment.
+            </p>
+          ) : booked ? (
             <div className="mt-8 rounded-xl bg-[#edf3ef] p-5 text-center">
               <CheckCircle2 className="mx-auto text-[#6f9387]" size={30} />
               <p className="mt-3 font-semibold">Request sent successfully</p>
@@ -170,8 +218,10 @@ const PatientAppointments = () => {
                   onChange={(event) => setDoctor(event.target.value)}
                   className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
                 >
-                  {Object.values(doctors).map((name) => (
-                    <option key={name}>{name}</option>
+                  {doctorOptions.map((doctorProfile) => (
+                    <option key={doctorProfile.email || doctorProfile.id} value={doctorProfile.name}>
+                      {doctorProfile.name}
+                    </option>
                   ))}
                 </select>
               </label>

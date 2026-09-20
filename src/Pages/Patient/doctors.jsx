@@ -7,64 +7,19 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const mockDoctors = [
-  {
-    id: 1,
-    name: "Dr. Sarah Johnson",
-    specialty: "Obstetrician & Gynecologist",
-    location: "Lagos Women's Centre",
-    experience: "12 years",
-    rating: "4.9",
-    image:
-      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=700&q=85",
-    nextSlot: "Thu, 10:30 AM",
-  },
-  {
-    id: 2,
-    name: "Dr. Emily Williams",
-    specialty: "Maternal-Fetal Medicine",
-    location: "Bloom Women's Clinic",
-    experience: "10 years",
-    rating: "4.8",
-    image:
-      "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=700&q=85",
-    nextSlot: "Fri, 2:00 PM",
-  },
-  {
-    id: 3,
-    name: "Dr. Michael Brown",
-    specialty: "Obstetrician",
-    location: "Harbour Health",
-    experience: "8 years",
-    rating: "4.7",
-    image:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=700&q=85",
-    nextSlot: "Mon, 9:00 AM",
-  },
-  {
-    id: 4,
-    name: "Dr. Amina Bello",
-    specialty: "Midwife & Women's Health",
-    location: "New Dawn Maternity",
-    experience: "9 years",
-    rating: "4.9",
-    image:
-      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=700&q=85",
-    nextSlot: "Tue, 11:30 AM",
-  },
-];
+import { getAvailableDoctors } from "../../Services/doctor";
 
 const Doctors = () => {
+  const availableDoctors = getAvailableDoctors();
   const [query, setQuery] = useState("");
   const [specialty, setSpecialty] = useState("All specialties");
   const specialties = [
     "All specialties",
-    ...new Set(mockDoctors.map((doctor) => doctor.specialty)),
+    ...new Set(availableDoctors.map((doctor) => doctor.specialty)),
   ];
   const filteredDoctors = useMemo(
     () =>
-      mockDoctors.filter((doctor) => {
+      availableDoctors.filter((doctor) => {
         const matchesQuery =
           `${doctor.name} ${doctor.specialty} ${doctor.location}`
             .toLowerCase()
@@ -74,7 +29,7 @@ const Doctors = () => {
           (specialty === "All specialties" || doctor.specialty === specialty)
         );
       }),
-    [query, specialty],
+    [availableDoctors, query, specialty],
   );
 
   return (
@@ -154,7 +109,7 @@ const Doctors = () => {
                   </span>
                 </p>
                 <Link
-                  to={`/patient/appointments?doctor=${doctor.id}`}
+                  to={`/patient/appointments?doctor=${encodeURIComponent(doctor.email || doctor.id)}`}
                   className="inline-flex items-center gap-1 rounded-xl bg-[#d98268] px-4 py-3 text-xs font-semibold text-white transition hover:bg-[#c66f57]"
                 >
                   Book visit <ChevronRight size={15} />

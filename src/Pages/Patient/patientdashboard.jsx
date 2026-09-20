@@ -22,6 +22,7 @@ import {
   getAppointments,
   removeAppointment,
 } from "../../Services/appointments";
+import { getAvailableDoctors } from "../../Services/doctor";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
@@ -241,18 +242,9 @@ const PatientDashboard = () => {
                   title="Appointments"
                   accent="cream"
                 >
-                  <div className="flex items-center justify-between rounded-xl bg-[#fff8f4] p-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[#c87861]">
-                        Upcoming
-                      </p>
-                      <p className="mt-1 font-semibold">Prenatal check-up</p>
-                      <p className="mt-1 text-sm text-[#69736f]">
-                        Thursday, 10:30 AM
-                      </p>
-                    </div>
-                    <ChevronRight size={19} className="text-[#c87861]" />
-                  </div>
+                  <p className="rounded-xl bg-[#fff8f4] p-4 text-sm text-[#69736f]">
+                    No appointment requests yet.
+                  </p>
                   <button
                     type="button"
                     onClick={() => setActiveView("appointments")}
@@ -359,56 +351,7 @@ const WorkspaceView = ({
   setProfileSaved,
   displayName,
 }) => {
-  const doctors = [
-    {
-      name: "Dr. Sarah Johnson",
-      specialty: "Obstetrician & Gynecologist",
-      location: "Lagos Women's Centre",
-      rating: "4.9",
-      image:
-        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Emily Williams",
-      specialty: "Maternal-Fetal Medicine",
-      location: "Bloom Women's Clinic",
-      rating: "4.8",
-      image:
-        "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Michael Brown",
-      specialty: "Obstetrician",
-      location: "Harbour Health",
-      rating: "4.7",
-      image:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Amina Bello",
-      specialty: "Midwife & Women's Health",
-      location: "New Dawn Maternity",
-      rating: "4.9",
-      image:
-        "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Grace Okafor",
-      specialty: "Prenatal Care Specialist",
-      location: "Wellness Women's Hospital",
-      rating: "4.8",
-      image:
-        "https://images.unsplash.com/photo-1618498082410-b4aa22193b38?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. David Mensah",
-      specialty: "Family Medicine",
-      location: "CarePoint Medical",
-      rating: "4.7",
-      image:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=700&q=85",
-    },
-  ];
+  const doctors = getAvailableDoctors();
   const filteredDoctors = doctors.filter((doctor) =>
     `${doctor.name} ${doctor.specialty} ${doctor.location}`
       .toLowerCase()
@@ -727,8 +670,9 @@ const AppointmentWorkspace = ({
   const [appointments, setAppointments] = useState([]);
   const [date, setDate] = useState("2026-09-24");
   const [time, setTime] = useState("10:30 AM");
+  const [doctorOptions, setDoctorOptions] = useState(getAvailableDoctors());
   const [doctor, setDoctor] = useState(
-    selectedDoctor?.name || "Dr. Sarah Johnson",
+    selectedDoctor?.name || getAvailableDoctors()[0]?.name || "Dr. Sarah Johnson",
   );
 
   useEffect(() => {
@@ -754,13 +698,49 @@ const AppointmentWorkspace = ({
       );
   }, []);
 
+  useEffect(() => {
+    const availableDoctors = getAvailableDoctors();
+
+    setDoctorOptions((current) => {
+      const sameList =
+        current.length === availableDoctors.length &&
+        current.every(
+          (item, index) =>
+            item.name === availableDoctors[index]?.name &&
+            item.email === availableDoctors[index]?.email,
+        );
+      return sameList ? current : availableDoctors;
+    });
+
+    if (selectedDoctor?.name) {
+      setDoctor(selectedDoctor.name);
+      return;
+    }
+
+    setDoctor((current) => {
+      if (availableDoctors.some((item) => item.name === current)) {
+        return current;
+      }
+      return availableDoctors[0]?.name || "";
+    });
+  }, [selectedDoctor]);
+
   const handleBooking = (event) => {
     event.preventDefault();
     const patient = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+    const selectedDoctorInfo = doctorOptions.find((item) => item.name === doctor);
+
+    if (!selectedDoctorInfo?.email) {
+      return;
+    }
+
     createAppointment({
       patientName: patient?.name || "Jane Doe",
       patientEmail: patient?.email || "",
-      doctorName: doctor,
+      doctorName: selectedDoctorInfo?.name || doctor,
+      doctorEmail: selectedDoctorInfo?.email || "",
+      doctorClinic: selectedDoctorInfo?.clinic || selectedDoctorInfo?.location || "",
+      doctorSpecialty: selectedDoctorInfo?.specialty || "",
       reason: "Prenatal check-up",
       date: `${date} · ${time}`,
       requestedAt: new Date().toLocaleString([], {
@@ -820,7 +800,11 @@ const AppointmentWorkspace = ({
         </div>
         <div className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
           <h2 className="font-serif text-2xl">Request a visit</h2>
-          {appointmentSent ? (
+          {doctorOptions.length === 0 ? (
+            <p className="mt-6 rounded-xl bg-[#fff8f4] p-5 text-sm text-[#69736f]">
+              No doctors are available yet. A doctor must sign in before you can request an appointment.
+            </p>
+          ) : appointmentSent ? (
             <div className="mt-6 rounded-xl bg-[#edf3ef] p-5 text-center">
               <p className="font-semibold">Request sent successfully.</p>
               <button
@@ -840,10 +824,11 @@ const AppointmentWorkspace = ({
                   onChange={(event) => setDoctor(event.target.value)}
                   className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal"
                 >
-                  <option>Dr. Sarah Johnson</option>
-                  <option>Dr. Emily Williams</option>
-                  <option>Dr. Michael Brown</option>
-                  <option>Dr. Amina Bello</option>
+                  {doctorOptions.map((doctorProfile) => (
+                    <option key={doctorProfile.email || doctorProfile.id} value={doctorProfile.name}>
+                      {doctorProfile.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
