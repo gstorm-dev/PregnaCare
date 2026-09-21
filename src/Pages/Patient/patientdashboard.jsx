@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Bell,
   CalendarDays,
@@ -17,6 +17,14 @@ import {
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  createAppointment,
+  getConsultationRoomName,
+  getAppointments,
+  getUserNotifications,
+  removeAppointment,
+} from "../../Services/appointments";
+import { getAvailableDoctors } from "../../Services/doctor";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
@@ -34,9 +42,10 @@ const PatientDashboard = () => {
   const [appointmentSent, setAppointmentSent] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [appointmentNotifications, setAppointmentNotifications] = useState([]);
   const savedUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("loggedInUser") || "null");
+      return JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
     } catch {
       return null;
     }
@@ -44,14 +53,38 @@ const PatientDashboard = () => {
 
   const displayName = savedUser?.name || "Jane Doe";
   const firstName = displayName.split(" ")[0];
+  const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(savedUser?.email || displayName)}`;
+
+  useEffect(() => {
+    const syncNotifications = () => {
+      const patient = JSON.parse(
+        sessionStorage.getItem("loggedInUser") || "null",
+      );
+      const notifications = getUserNotifications(patient, "patient");
+      setAppointmentNotifications(notifications);
+    };
+
+    syncNotifications();
+    const timer = window.setInterval(syncNotifications, 1_000);
+    window.addEventListener("pregnacare:appointments-updated", syncNotifications);
+    window.addEventListener("storage", syncNotifications);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(
+        "pregnacare:appointments-updated",
+        syncNotifications,
+      );
+      window.removeEventListener("storage", syncNotifications);
+    };
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
+    sessionStorage.removeItem("loggedInUser");
     navigate("/");
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] text-[#26322e]">
+    <div className="patient-dashboard min-h-screen bg-[#f8f6f3] text-[#26322e]">
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[#e9e2dc] bg-[#fffdfb] px-5 py-6 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -84,9 +117,11 @@ const PatientDashboard = () => {
           </p>
           <p className="mt-2 truncate font-serif text-2xl">{firstName}!</p>
           <div className="mt-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]">
-              {displayName.slice(0, 1).toUpperCase()}
-            </div>
+            <img
+              src={avatarUrl}
+              alt={`${displayName} profile`}
+              className="h-11 w-11 rounded-full object-cover"
+            />
             <div>
               <p className="text-sm font-semibold">{displayName}</p>
               <p className="text-xs text-[#69736f]">Patient</p>
@@ -166,7 +201,7 @@ const PatientDashboard = () => {
               Patient workspace
             </p>
             <h1 className="mt-1 font-serif text-2xl">
-              Good morning, {firstName} <span aria-hidden="true">👋</span>
+              Hello!! {firstName} <span aria-hidden="true"></span>
             </h1>
           </div>
           <div className="relative ml-auto flex items-center gap-3">
@@ -177,22 +212,41 @@ const PatientDashboard = () => {
               className="relative rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#69736f] transition hover:border-[#e7b4a3] hover:text-[#c87861]"
             >
               <Bell size={19} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+              {appointmentNotifications.length > 0 && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+              )}
             </button>
             <button
               type="button"
               aria-label="Open profile"
               onClick={() => setActiveView("profile")}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]"
+              className="h-10 w-10 overflow-hidden rounded-full"
             >
-              {displayName.slice(0, 1).toUpperCase()}
+              <img src={avatarUrl} alt={`${displayName} profile`} className="h-full w-full object-cover" />
             </button>
             {notificationsOpen && (
-              <div className="absolute right-0 top-14 w-64 rounded-2xl border border-[#eadfd9] bg-white p-4 text-sm shadow-xl">
-                <p className="font-semibold">You are all caught up.</p>
-                <p className="mt-1 text-[#69736f]">
-                  Your next appointment is on Thursday.
-                </p>
+              <div className="absolute right-0 top-14 w-80 rounded-2xl border border-[#eadfd9] bg-white p-4 text-sm shadow-xl">
+                {appointmentNotifications.length === 0 ? (
+                  <p className="font-semibold">You are all caught up.</p>
+                ) : (
+                  appointmentNotifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/consultation/${getConsultationRoomName(notification.appointment)}?appointment=${encodeURIComponent(notification.appointment.id)}`,
+                        )
+                      }
+                      className="w-full rounded-xl bg-[#fff8f4] p-3 text-left hover:bg-[#fff0ea]"
+                    >
+                      <p className="font-semibold">
+                        {notification.title}
+                      </p>
+                      <p className="mt-1 text-[#69736f]">{notification.text}</p>
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -236,18 +290,9 @@ const PatientDashboard = () => {
                   title="Appointments"
                   accent="cream"
                 >
-                  <div className="flex items-center justify-between rounded-xl bg-[#fff8f4] p-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-[#c87861]">
-                        Upcoming
-                      </p>
-                      <p className="mt-1 font-semibold">Prenatal check-up</p>
-                      <p className="mt-1 text-sm text-[#69736f]">
-                        Thursday, 10:30 AM
-                      </p>
-                    </div>
-                    <ChevronRight size={19} className="text-[#c87861]" />
-                  </div>
+                  <p className="rounded-xl bg-[#fff8f4] p-4 text-sm text-[#69736f]">
+                    No appointment requests yet.
+                  </p>
                   <button
                     type="button"
                     onClick={() => setActiveView("appointments")}
@@ -354,56 +399,7 @@ const WorkspaceView = ({
   setProfileSaved,
   displayName,
 }) => {
-  const doctors = [
-    {
-      name: "Dr. Sarah Johnson",
-      specialty: "Obstetrician & Gynecologist",
-      location: "Lagos Women's Centre",
-      rating: "4.9",
-      image:
-        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Emily Williams",
-      specialty: "Maternal-Fetal Medicine",
-      location: "Bloom Women's Clinic",
-      rating: "4.8",
-      image:
-        "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Michael Brown",
-      specialty: "Obstetrician",
-      location: "Harbour Health",
-      rating: "4.7",
-      image:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Amina Bello",
-      specialty: "Midwife & Women's Health",
-      location: "New Dawn Maternity",
-      rating: "4.9",
-      image:
-        "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. Grace Okafor",
-      specialty: "Prenatal Care Specialist",
-      location: "Wellness Women's Hospital",
-      rating: "4.8",
-      image:
-        "https://images.unsplash.com/photo-1618498082410-b4aa22193b38?auto=format&fit=crop&w=700&q=85",
-    },
-    {
-      name: "Dr. David Mensah",
-      specialty: "Family Medicine",
-      location: "CarePoint Medical",
-      rating: "4.7",
-      image:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=700&q=85",
-    },
-  ];
+  const doctors = getAvailableDoctors();
   const filteredDoctors = doctors.filter((doctor) =>
     `${doctor.name} ${doctor.specialty} ${doctor.location}`
       .toLowerCase()
@@ -481,6 +477,16 @@ const WorkspaceView = ({
           </div>
         </div>
       </section>
+    );
+  }
+
+  if (view === "appointments") {
+    return (
+      <AppointmentWorkspace
+        selectedDoctor={selectedDoctor}
+        appointmentSent={appointmentSent}
+        setAppointmentSent={setAppointmentSent}
+      />
     );
   }
 
@@ -700,6 +706,239 @@ const WorkspaceView = ({
           {profileSaved ? "Saved" : "Save changes"}
         </button>
       </form>
+    </section>
+  );
+};
+
+const AppointmentWorkspace = ({
+  selectedDoctor,
+  appointmentSent,
+  setAppointmentSent,
+}) => {
+  const navigate = useNavigate();
+  const [appointments, setAppointments] = useState([]);
+  const [date, setDate] = useState("2026-09-24");
+  const [time, setTime] = useState("10:30 AM");
+  const [doctorOptions, setDoctorOptions] = useState(getAvailableDoctors());
+  const [doctor, setDoctor] = useState(
+    selectedDoctor?.name || getAvailableDoctors()[0]?.name || "Dr. Sarah Johnson",
+  );
+
+  useEffect(() => {
+    const syncAppointments = () => {
+      const patient = JSON.parse(
+        sessionStorage.getItem("loggedInUser") || "null",
+      );
+      setAppointments(
+        getAppointments().filter(
+          (appointment) => appointment.patientEmail === patient?.email,
+        ),
+      );
+    };
+    syncAppointments();
+    const timer = window.setInterval(syncAppointments, 1_000);
+    window.addEventListener(
+      "pregnacare:appointments-updated",
+      syncAppointments,
+    );
+    window.addEventListener("storage", syncAppointments);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(
+        "pregnacare:appointments-updated",
+        syncAppointments,
+      );
+      window.removeEventListener("storage", syncAppointments);
+    };
+  }, []);
+
+  useEffect(() => {
+    const availableDoctors = getAvailableDoctors();
+
+    setDoctorOptions((current) => {
+      const sameList =
+        current.length === availableDoctors.length &&
+        current.every(
+          (item, index) =>
+            item.name === availableDoctors[index]?.name &&
+            item.email === availableDoctors[index]?.email,
+        );
+      return sameList ? current : availableDoctors;
+    });
+
+    if (selectedDoctor?.name) {
+      setDoctor(selectedDoctor.name);
+      return;
+    }
+
+    setDoctor((current) => {
+      if (availableDoctors.some((item) => item.name === current)) {
+        return current;
+      }
+      return availableDoctors[0]?.name || "";
+    });
+  }, [selectedDoctor]);
+
+  const handleBooking = (event) => {
+    event.preventDefault();
+    const patient = JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
+    const selectedDoctorInfo = doctorOptions.find((item) => item.name === doctor);
+
+    if (!selectedDoctorInfo?.email) {
+      return;
+    }
+
+    createAppointment({
+      patientName: patient?.name || "Jane Doe",
+      patientEmail: patient?.email || "",
+      patientDueDate: patient?.dueDate || "Not provided",
+      patientPregnancyWeek: patient?.pregnancyWeek || "Not provided",
+      patientBloodType: patient?.bloodType || "Not provided",
+      patientMedicalHistory: patient?.medicalHistory || "Not provided",
+      patientEmergencyContact: patient?.emergencyContact || "Not provided",
+      doctorName: selectedDoctorInfo?.name || doctor,
+      doctorEmail: selectedDoctorInfo?.email || "",
+      doctorPhone:
+        selectedDoctorInfo?.phone || selectedDoctorInfo?.contactInfo || "",
+      doctorClinic: selectedDoctorInfo?.clinic || selectedDoctorInfo?.location || "",
+      doctorSpecialty: selectedDoctorInfo?.specialty || "",
+      reason: "Prenatal check-up",
+      date: `${date} · ${time}`,
+      scheduledAt: `${date}T${time === "10:30 AM" ? "10:30" : time === "2:00 PM" ? "14:00" : "16:30"}:00`,
+      requestedAt: new Date().toLocaleString([], {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      status: "Pending",
+    });
+    setAppointmentSent(true);
+  };
+
+  return (
+    <section>
+      <WorkspaceHeading
+        eyebrow="Care calendar"
+        title="Book an appointment"
+        text="Request a visit and manage your existing appointments at any time."
+      />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+          <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">
+            Your appointments
+          </p>
+          {appointments.length === 0 ? (
+            <p className="mt-5 text-sm text-[#69736f]">
+              No appointment requests yet.
+            </p>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {appointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="rounded-xl bg-[#fff8f4] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{appointment.reason}</p>
+                      <p className="mt-1 text-sm text-[#69736f]">
+                        {appointment.doctorName} · {appointment.date}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-xs font-semibold text-[#b66d58]">
+                      {appointment.status}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeAppointment(appointment.id)}
+                    className="mt-3 inline-flex items-center rounded-xl bg-[#fff0ea] px-4 py-2 text-sm font-semibold text-[#b66d58] transition hover:bg-[#f9ddd3]"
+                  >
+                    Cancel appointment
+                  </button>
+                  {appointment.status === "Accepted" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/consultation/${getConsultationRoomName(appointment)}?appointment=${encodeURIComponent(appointment.id)}`,
+                        )
+                      }
+                      className="mt-3 ml-2 inline-flex items-center rounded-xl bg-[#26322e] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3b4944]"
+                    >
+                      Open care chat
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+          <h2 className="font-serif text-2xl">Request a visit</h2>
+          {doctorOptions.length === 0 ? (
+            <p className="mt-6 rounded-xl bg-[#fff8f4] p-5 text-sm text-[#69736f]">
+              No doctors are available yet. A doctor must sign in before you can request an appointment.
+            </p>
+          ) : appointmentSent ? (
+            <div className="mt-6 rounded-xl bg-[#edf3ef] p-5 text-center">
+              <p className="font-semibold">Request sent successfully.</p>
+              <button
+                type="button"
+                onClick={() => setAppointmentSent(false)}
+                className="mt-4 text-sm font-semibold text-[#c87861]"
+              >
+                Book another visit
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleBooking} className="mt-5 space-y-4">
+              <label className="block text-sm font-semibold">
+                Doctor
+                <select
+                  value={doctor}
+                  onChange={(event) => setDoctor(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal"
+                >
+                  {doctorOptions.map((doctorProfile) => (
+                    <option key={doctorProfile.email || doctorProfile.id} value={doctorProfile.name}>
+                      {doctorProfile.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold">
+                  Date
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(event) => setDate(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal"
+                  />
+                </label>
+                <label className="block text-sm font-semibold">
+                  Time
+                  <select
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
+                    className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal"
+                  >
+                    <option>10:30 AM</option>
+                    <option>2:00 PM</option>
+                    <option>4:30 PM</option>
+                  </select>
+                </label>
+              </div>
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-[#d98268] px-5 py-3 font-semibold text-white"
+              >
+                Request appointment
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
     </section>
   );
 };

@@ -1,9 +1,113 @@
-import React from 'react'
+import { ChevronRight } from "lucide-react";
 
-const Appointments = () => {
-  return (
-    <div>Appointments</div>
-  )
-}
-
-export default Appointments
+const Appointments = ({
+  pendingAppointments,
+  acceptedAppointments,
+  handleAppointmentDecision,
+  startConsultation,
+}) => (
+  <section>
+    <SectionHeading
+      eyebrow="Care calendar"
+      title="Your appointments"
+      text="Review appointment requests, confirmed bookings, and schedule updates."
+    />
+    <div className="space-y-6">
+      <AppointmentList
+        title="Pending appointment requests"
+        appointments={pendingAppointments}
+        emptyText="No pending appointment requests."
+        renderActions={(appointment) => (
+          <div className="mt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                handleAppointmentDecision(appointment.id, "accept")
+              }
+              className="flex-1 rounded-xl bg-[#d98268] px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              Accept
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAppointmentDecision(appointment.id, "decline")
+              }
+              className="flex-1 rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2.5 text-sm font-semibold text-[#8b645c]"
+            >
+              Decline
+            </button>
+          </div>
+        )}
+      />
+      <AppointmentList
+        title="Accepted appointments"
+        appointments={acceptedAppointments}
+        emptyText="No accepted appointments yet."
+        accepted
+        renderActions={(appointment) => (
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                handleAppointmentDecision(appointment.id, "decline")
+              }
+              className="rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2 text-sm font-semibold text-[#8b645c]"
+            >
+              Decline appointment
+            </button>
+            <button
+              type="button"
+              onClick={() => startConsultation(appointment)}
+              className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#26322e] px-4 py-2 text-sm font-semibold text-white shadow-lg"
+            >
+              Open care chat <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      />
+    </div>
+  </section>
+);
+const AppointmentList = ({
+  title,
+  appointments,
+  emptyText,
+  accepted,
+  renderActions,
+}) => (
+  <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+    <h3 className="font-serif text-2xl">{title}</h3>
+    {appointments.length === 0 ? (
+      <p className="mt-4 text-sm text-[#69736f]">{emptyText}</p>
+    ) : (
+      <div className="mt-4 grid gap-4">
+        {appointments.map((appointment) => (
+          <article
+            key={appointment.id}
+            className="rounded-2xl border border-[#eadfd9] bg-[#fffdfb] p-4"
+          >
+            <p className="font-semibold text-[#26322e]">
+              {appointment.patientName}
+            </p>
+            <p className="mt-1 text-sm text-[#69736f]">{appointment.reason}</p>
+            <p className="mt-3 text-sm text-[#69736f]">
+              {accepted ? "Date" : "Preferred time"}: {appointment.date}
+            </p>
+            {renderActions(appointment)}
+          </article>
+        ))}
+      </div>
+    )}
+  </div>
+);
+const SectionHeading = ({ eyebrow, title, text }) => (
+  <div className="mb-7">
+    <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">
+      {eyebrow}
+    </p>
+    <h2 className="mt-2 font-serif text-4xl">{title}</h2>
+    <p className="mt-3 max-w-2xl text-sm leading-6 text-[#69736f]">{text}</p>
+  </div>
+);
+export default Appointments;

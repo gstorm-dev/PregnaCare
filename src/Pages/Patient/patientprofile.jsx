@@ -3,7 +3,7 @@ import { Check, FileText, HeartPulse, Save, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PatientProfile = () => {
-  const savedUser = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+  const savedUser = JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
   const [form, setForm] = useState({
     name: savedUser?.name || "Jane Doe",
     email: savedUser?.email || "jane@example.com",
@@ -130,13 +130,13 @@ const Field = ({ label, name, value, onChange, type = "text" }) => (
       name={name}
       value={value}
       onChange={onChange}
-      className="mt-2 w-full rounded-xl border border-[#bfdbfe] bg-[#f8fbff] px-4 py-3 font-normal outline-none transition focus:border-[#2563eb]"
+      className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none transition focus:border-[#d98268]"
     />
   </label>
 );
 const ProfileStat = ({ icon: Icon, label, value }) => (
   <div className="flex items-center gap-3">
-    <Icon size={18} className="text-[#93c5fd]" />
+    <Icon size={18} className="text-[#f2c8b8]" />
     <div>
       <p className="text-xs text-white/55">{label}</p>
       <p className="mt-0.5 text-sm font-semibold">{value}</p>
