@@ -16,8 +16,15 @@ const AuthPage = ({ mode, role }) => {
   const [clinicName, setClinicName] = useState("");
   const [contactInfo, setContactInfo] = useState("");
   const [experience, setExperience] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [pregnancyWeek, setPregnancyWeek] = useState("");
+  const [bloodType, setBloodType] = useState("");
+  const [medicalHistory, setMedicalHistory] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [patientDetailsStep, setPatientDetailsStep] = useState(false);
   const [credentialsStep, setCredentialsStep] = useState(false);
   const [applicationSent, setApplicationSent] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,9 +52,24 @@ const AuthPage = ({ mode, role }) => {
         return;
       }
 
+      if (role === "patient" && !patientDetailsStep) {
+        setPatientDetailsStep(true);
+        return;
+      }
+
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ name, email, password, role }),
+        JSON.stringify({
+          name,
+          email,
+          password,
+          role,
+          dueDate,
+          pregnancyWeek,
+          bloodType,
+          medicalHistory,
+          emergencyContact,
+        }),
       );
       setAccountCreated(true);
       return;
@@ -65,7 +87,7 @@ const AuthPage = ({ mode, role }) => {
       return;
     }
 
-    localStorage.setItem("loggedInUser", JSON.stringify(savedUser));
+    sessionStorage.setItem("loggedInUser", JSON.stringify(savedUser));
     if (role === "doctor") {
       localStorage.setItem("doctorUser", JSON.stringify(savedUser));
     }
@@ -114,7 +136,12 @@ const AuthPage = ({ mode, role }) => {
       JSON.stringify(pendingApplications),
     );
 
-    setApplicationSent(true);
+    setIsProcessing(true);
+    setTimeout(() => {
+      sessionStorage.setItem("loggedInUser", JSON.stringify(doctorProfile));
+      localStorage.setItem("doctorUser", JSON.stringify(doctorProfile));
+      navigate("/doctor");
+    }, 5000);
   };
 
   return (
@@ -136,6 +163,8 @@ const AuthPage = ({ mode, role }) => {
               {isSignup
                 ? credentialsStep
                   ? "Complete your doctor profile"
+                  : patientDetailsStep
+                    ? "Tell us about your pregnancy"
                   : `Create your ${roleLabel.toLowerCase()} account`
                 : `${roleLabel} sign in`}
             </h1>
@@ -144,6 +173,8 @@ const AuthPage = ({ mode, role }) => {
               {isSignup
                 ? credentialsStep
                   ? "Add your professional details so the admin can verify your application."
+                  : patientDetailsStep
+                    ? "This information helps your doctor prepare your care report."
                   : accountCreated
                     ? "Your account has been created. Please continue to sign in when ready."
                     : "Join a connected space for better pregnancy care."
@@ -151,10 +182,15 @@ const AuthPage = ({ mode, role }) => {
             </p>
           </div>
 
-          {isSignup &&
-          role === "doctor" &&
-          credentialsStep &&
-          !applicationSent ? (
+          {isProcessing ? (
+            <div className="mt-8 rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-700">
+              Processing your application. You will be redirected to your
+              dashboard shortly...
+            </div>
+          ) : isSignup &&
+            role === "doctor" &&
+            credentialsStep &&
+            !applicationSent ? (
             <form onSubmit={handleCredentialSubmit} className="mt-8 space-y-5">
               <label className="block text-sm font-semibold text-slate-700">
                 Medical license number
@@ -222,6 +258,69 @@ const AuthPage = ({ mode, role }) => {
                 className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 Submit application
+              </button>
+            </form>
+          ) : isSignup && role === "patient" && patientDetailsStep ? (
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <label className="block text-sm font-semibold text-slate-700">
+                Expected due date
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(event) => setDueDate(event.target.value)}
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                />
+              </label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Current pregnancy week
+                <input
+                  type="number"
+                  min="1"
+                  max="45"
+                  value={pregnancyWeek}
+                  onChange={(event) => setPregnancyWeek(event.target.value)}
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="e.g. 24"
+                />
+              </label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Blood type
+                <input
+                  value={bloodType}
+                  onChange={(event) => setBloodType(event.target.value)}
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="e.g. O+"
+                />
+              </label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Medical history or allergies
+                <textarea
+                  value={medicalHistory}
+                  onChange={(event) => setMedicalHistory(event.target.value)}
+                  required
+                  rows="3"
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="Share anything your doctor should know"
+                />
+              </label>
+              <label className="block text-sm font-semibold text-slate-700">
+                Emergency contact
+                <input
+                  value={emergencyContact}
+                  onChange={(event) => setEmergencyContact(event.target.value)}
+                  required
+                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  placeholder="Name and phone number"
+                />
+              </label>
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                Complete patient profile
               </button>
             </form>
           ) : (

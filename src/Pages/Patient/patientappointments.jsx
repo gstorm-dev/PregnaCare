@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { CalendarDays, CheckCircle2, Stethoscope, X } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   createAppointment,
+  getConsultationRoomName,
   getAppointments,
   removeAppointment,
 } from "../../Services/appointments";
@@ -10,6 +11,7 @@ import { getAvailableDoctors } from "../../Services/doctor";
 
 const PatientAppointments = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [doctorOptions, setDoctorOptions] = useState(getAvailableDoctors());
   const [doctor, setDoctor] = useState(() => {
     const requestedDoctor = searchParams.get("doctor");
@@ -27,14 +29,14 @@ const PatientAppointments = () => {
 
   useEffect(() => {
     try {
-      setPatient(JSON.parse(localStorage.getItem("loggedInUser") || "null"));
+      setPatient(JSON.parse(sessionStorage.getItem("loggedInUser") || "null"));
     } catch {
       setPatient(null);
     }
 
     const syncAppointments = () => {
       const currentPatient = JSON.parse(
-        localStorage.getItem("loggedInUser") || "null",
+        sessionStorage.getItem("loggedInUser") || "null",
       );
       setAppointments(
         getAppointments().filter(
@@ -48,15 +50,20 @@ const PatientAppointments = () => {
     };
 
     syncAppointments();
+    const timer = window.setInterval(syncAppointments, 1_000);
     window.addEventListener(
       "pregnacare:appointments-updated",
       syncAppointments,
     );
-    return () =>
+    window.addEventListener("storage", syncAppointments);
+    return () => {
+      window.clearInterval(timer);
       window.removeEventListener(
         "pregnacare:appointments-updated",
         syncAppointments,
       );
+      window.removeEventListener("storage", syncAppointments);
+    };
   }, []);
 
   useEffect(() => {
@@ -109,8 +116,14 @@ const PatientAppointments = () => {
     createAppointment({
       patientName: patient?.name || "Jane Doe",
       patientEmail: patient?.email || "",
+      patientDueDate: patient?.dueDate || "Not provided",
+      patientPregnancyWeek: patient?.pregnancyWeek || "Not provided",
+      patientBloodType: patient?.bloodType || "Not provided",
+      patientMedicalHistory: patient?.medicalHistory || "Not provided",
+      patientEmergencyContact: patient?.emergencyContact || "Not provided",
       doctorName: selectedDoctor?.name || doctor,
       doctorEmail: selectedDoctor?.email || "",
+      doctorPhone: selectedDoctor?.phone || selectedDoctor?.contactInfo || "",
       doctorClinic: selectedDoctor?.clinic || selectedDoctor?.location || "",
       doctorSpecialty: selectedDoctor?.specialty || "",
       reason: "Prenatal check-up",
@@ -173,6 +186,19 @@ const PatientAppointments = () => {
                   >
                     <X size={15} /> Cancel appointment
                   </button>
+                  {appointment.status === "Accepted" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/consultation/${getConsultationRoomName(appointment)}?appointment=${encodeURIComponent(appointment.id)}`,
+                        )
+                      }
+                      className="mt-4 ml-2 inline-flex items-center gap-2 rounded-xl bg-[#26322e] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3b4944]"
+                    >
+                      Open care chat
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

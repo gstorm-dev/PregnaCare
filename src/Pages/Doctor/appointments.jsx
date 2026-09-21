@@ -61,7 +61,7 @@ const Appointments = ({
               onClick={() => startConsultation(appointment)}
               className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#26322e] px-4 py-2 text-sm font-semibold text-white shadow-lg"
             >
-              Start consultation <ChevronRight size={16} />
+              Open care chat <ChevronRight size={16} />
             </button>
           </div>
         )}

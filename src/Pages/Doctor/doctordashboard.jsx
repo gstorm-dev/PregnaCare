@@ -6,7 +6,6 @@ import {
   CalendarDays,
   ChevronRight,
   CircleHelp,
-  ClipboardCheck,
   FileText,
   HeartPulse,
   LayoutDashboard,
@@ -23,6 +22,8 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import {
   getAppointments,
+  getConsultationRoomName,
+  getUserNotifications,
   removeAppointment,
   saveAppointments,
   updateAppointment,
@@ -33,18 +34,10 @@ const navItems = [
   { label: "Appointments", icon: CalendarDays, view: "appointments" },
   { label: "Patients", icon: Users, view: "patients" },
   { label: "Pending Requests", icon: FileText, view: "pendingPatients" },
-  { label: "Care Plans", icon: ClipboardCheck, view: "plans" },
   { label: "Reports", icon: Activity, view: "reports" },
 ];
 
 const initialPendingRequests = [];
-
-const getConsultationRoomName = (appointment) => {
-  const patientName = appointment.patientName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-");
-  return `pregnacare-${appointment.id}-${patientName}`;
-};
 
 const defaultPreferences = {
   appointmentReminders: true,
@@ -54,7 +47,7 @@ const defaultPreferences = {
 
 const getDoctorStorageKey = (section) => {
   try {
-    const user = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+    const user = JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
     const doctorId =
       user?.email?.toLowerCase().replace(/[^a-z0-9]/g, "-") || "guest";
     return `doctorDashboard:${doctorId}:${section}`;
@@ -101,11 +94,12 @@ const Doctordashboard = () => {
   );
   const [pendingAppointments, setPendingAppointments] = useState([]);
   const [acceptedAppointments, setAcceptedAppointments] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const notifiedAppointmentIds = useRef(new Set());
   const [doctorProfile, setDoctorProfile] = useState(() => {
     try {
       const storedUser = JSON.parse(
-        localStorage.getItem("loggedInUser") || "null",
+        sessionStorage.getItem("loggedInUser") || "null",
       );
       return {
         name: storedUser?.name || "",
@@ -129,7 +123,7 @@ const Doctordashboard = () => {
 
   const savedUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("loggedInUser") || "null");
+      return JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
     } catch {
       return null;
     }
@@ -137,9 +131,10 @@ const Doctordashboard = () => {
 
   const displayName = doctorProfile.name || "Doctor";
   const firstName = displayName.split(" ").slice(-1)[0] || "Doctor";
+  const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(doctorProfile.email || displayName)}`;
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
+    sessionStorage.removeItem("loggedInUser");
     navigate("/");
   };
 
@@ -183,18 +178,29 @@ const Doctordashboard = () => {
           (appointment) => appointment.status === "Accepted",
         ),
       );
+      setNotifications(
+        getUserNotifications(
+          { email: doctorProfile.email },
+          "doctor",
+        ),
+      );
     };
 
     syncAppointments();
+    const timer = window.setInterval(syncAppointments, 1_000);
     window.addEventListener(
       "pregnacare:appointments-updated",
       syncAppointments,
     );
-    return () =>
+    window.addEventListener("storage", syncAppointments);
+    return () => {
+      window.clearInterval(timer);
       window.removeEventListener(
         "pregnacare:appointments-updated",
         syncAppointments,
       );
+      window.removeEventListener("storage", syncAppointments);
+    };
   }, [doctorProfile.email]);
 
   const notifyDoctorConsultationReady = (appointment) => {
@@ -228,7 +234,14 @@ const Doctordashboard = () => {
   }, [acceptedAppointments]);
 
   const startConsultation = (appointment) => {
-    navigate(`/consultation/${getConsultationRoomName(appointment)}`);
+    updateAppointment(appointment.id, {
+      consultationStarted: true,
+      consultationStartedAt:
+        appointment.consultationStartedAt || new Date().toISOString(),
+    });
+    navigate(
+      `/consultation/${getConsultationRoomName(appointment)}?appointment=${encodeURIComponent(appointment.id)}`,
+    );
   };
 
   const handlePendingPatientDecision = (requestId, decision) => {
@@ -322,9 +335,11 @@ const Doctordashboard = () => {
           </p>
           <p className="mt-2 truncate font-serif text-2xl">{firstName}!</p>
           <div className="mt-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]">
-              {displayName.slice(0, 1).toUpperCase()}
-            </div>
+            <img
+              src={avatarUrl}
+              alt={`${displayName} profile`}
+              className="h-11 w-11 rounded-full object-cover"
+            />
             <div>
               <p className="text-sm font-semibold">{displayName}</p>
               <p className="text-xs text-[#69736f]">
@@ -371,6 +386,14 @@ const Doctordashboard = () => {
             <Settings size={19} />
             Settings
           </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#b66d58] hover:bg-[#fff0ea]"
+          >
+            <LogOut size={19} />
+            Logout
+          </button>
         </div>
       </aside>
 
@@ -409,22 +432,46 @@ const Doctordashboard = () => {
               className="relative rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#69736f] transition hover:border-[#e7b4a3] hover:text-[#c87861]"
             >
               <Bell size={19} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+              {notifications.length > 0 && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+              )}
             </button>
             <button
               type="button"
               aria-label="Open profile"
               onClick={() => setActiveView("profile")}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]"
+              className="h-10 w-10 overflow-hidden rounded-full"
             >
-              {displayName.slice(0, 1).toUpperCase()}
+              <img
+                src={avatarUrl}
+                alt={`${displayName} profile`}
+                className="h-full w-full object-cover"
+              />
             </button>
             {notificationsOpen && (
-              <div className="absolute right-0 top-14 w-64 rounded-2xl border border-[#eadfd9] bg-white p-4 text-sm shadow-xl">
-                <p className="font-semibold">You are all caught up.</p>
-                <p className="mt-1 text-[#69736f]">
-                  Your next appointment starts in 45 minutes.
-                </p>
+              <div className="absolute right-0 top-14 w-80 rounded-2xl border border-[#eadfd9] bg-white p-4 text-sm shadow-xl">
+                {notifications.length === 0 ? (
+                  <p className="font-semibold">You are all caught up.</p>
+                ) : (
+                  notifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      type="button"
+                      onClick={() => {
+                        if (notification.type === "request") {
+                          setActiveView("pendingPatients");
+                        } else {
+                          startConsultation(notification.appointment);
+                        }
+                        setNotificationsOpen(false);
+                      }}
+                      className="mb-2 w-full rounded-xl bg-[#fff8f4] p-3 text-left last:mb-0 hover:bg-[#fff0ea]"
+                    >
+                      <p className="font-semibold">{notification.title}</p>
+                      <p className="mt-1 text-[#69736f]">{notification.text}</p>
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -746,11 +793,70 @@ const WorkspaceView = ({
       <section>
         <WorkspaceHeading
           eyebrow="Access requests"
-          title="Pending patient requests"
-          text="Review patient requests and decide who to accept into your care list."
+          title="Pending requests"
+          text="Review patient care requests and appointment bookings waiting for your decision."
         />
         <div className="grid gap-4 lg:grid-cols-2">
-          {pendingPatients.length === 0 ? (
+          {pendingAppointments.map((appointment) => (
+            <article
+              key={appointment.id}
+              className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-serif text-2xl">
+                    {appointment.patientName}
+                  </h3>
+                  <p className="mt-1 text-sm text-[#69736f]">
+                    Appointment booking
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-[11px] font-bold text-[#b66d58]">
+                  Pending
+                </span>
+              </div>
+              <div className="mt-4 space-y-3 text-sm text-[#69736f]">
+                <p>
+                  <span className="font-semibold text-[#3b4944]">Reason:</span>{" "}
+                  {appointment.reason}
+                </p>
+                <p>
+                  <span className="font-semibold text-[#3b4944]">
+                    Preferred time:
+                  </span>{" "}
+                  {appointment.date}
+                </p>
+                <p>
+                  <span className="font-semibold text-[#3b4944]">
+                    Requested:
+                  </span>{" "}
+                  {appointment.requestedAt}
+                </p>
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleAppointmentDecision(appointment.id, "accept")
+                  }
+                  className="flex-1 rounded-xl bg-[#d98268] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c66f57]"
+                >
+                  Accept appointment
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleAppointmentDecision(appointment.id, "decline")
+                  }
+                  className="flex-1 rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2.5 text-sm font-semibold text-[#8b645c] transition hover:bg-[#fdf0eb]"
+                >
+                  Decline
+                </button>
+              </div>
+            </article>
+          ))}
+
+          {pendingPatients.length === 0 && pendingAppointments.length === 0 ? (
             <div className="col-span-full rounded-2xl border border-dashed border-[#e9d4cc] bg-[#fffaf8] p-8 text-center">
               <p className="font-serif text-3xl text-[#26322e]">
                 No pending requests
@@ -759,7 +865,7 @@ const WorkspaceView = ({
                 When a patient requests care, they will appear here for review.
               </p>
             </div>
-          ) : (
+          ) : pendingPatients.length > 0 ? (
             pendingPatients.map((request) => (
               <article
                 key={request.id}
@@ -812,7 +918,7 @@ const WorkspaceView = ({
                 </div>
               </article>
             ))
-          )}
+          ) : null}
         </div>
       </section>
     );
@@ -828,81 +934,10 @@ const WorkspaceView = ({
         />
         <div className="space-y-6">
           <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="font-serif text-2xl">
-                Pending appointment requests
-              </h3>
-              <button
-                type="button"
-                onClick={() =>
-                  alert("Schedule new appointment feature coming soon")
-                }
-                className="inline-flex items-center gap-2 rounded-lg bg-[#d98268] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c66f57]"
-              >
-                + Schedule
-              </button>
-            </div>
-            {pendingAppointments.length === 0 ? (
-              <p className="mt-4 text-sm text-[#69736f]">
-                No pending appointment requests.
-              </p>
-            ) : (
-              <div className="mt-4 grid gap-4">
-                {pendingAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="relative rounded-2xl border border-[#eadfd9] bg-[#fffdfb] p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-[#26322e]">
-                          {appointment.patientName}
-                        </p>
-                        <p className="mt-1 text-sm text-[#69736f]">
-                          {appointment.reason}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-[#fff0ea] px-2 py-1 text-[11px] font-bold text-[#b66d58]">
-                        Pending
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm text-[#69736f]">
-                      Requested: {appointment.requestedAt}
-                    </p>
-                    <p className="text-sm text-[#69736f]">
-                      Preferred time: {appointment.date}
-                    </p>
-                    <div className="mt-4 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAppointmentDecision(appointment.id, "accept")
-                        }
-                        className="flex-1 rounded-xl bg-[#d98268] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c66f57]"
-                      >
-                        Accept
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAppointmentDecision(appointment.id, "decline")
-                        }
-                        className="flex-1 rounded-xl border border-[#e9d4cc] bg-[#fffaf8] px-4 py-2.5 text-sm font-semibold text-[#8b645c] transition hover:bg-[#fdf0eb]"
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
-            <h3 className="font-serif text-2xl">Accepted appointments</h3>
+            <h3 className="font-serif text-2xl">Appointments</h3>
             {acceptedAppointments.length === 0 ? (
               <p className="mt-4 text-sm text-[#69736f]">
-                No accepted appointments yet.
+                No accepted appointments yet. Accepted bookings will appear here.
               </p>
             ) : (
               <div className="mt-4 grid gap-4">
@@ -942,7 +977,7 @@ const WorkspaceView = ({
                         onClick={() => startConsultation(appointment)}
                         className="ml-auto inline-flex items-center gap-2 rounded-full bg-[#26322e] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-[#3b4944]"
                       >
-                        Start consultation <ChevronRight size={16} />
+                        Open care chat <ChevronRight size={16} />
                       </button>
                     </div>
                   </div>
@@ -1013,6 +1048,54 @@ const WorkspaceView = ({
             value={`${careScore}%`}
             note="Acceptance rate"
           />
+        </div>
+        <div className="mt-8 rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+          <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">
+            Patient intake reports
+          </p>
+          <h3 className="mt-2 font-serif text-2xl">Information from patient forms</h3>
+          {acceptedAppointments.length === 0 ? (
+            <p className="mt-4 text-sm text-[#69736f]">
+              Patient intake information will appear after an appointment is accepted.
+            </p>
+          ) : (
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              {acceptedAppointments.map((appointment) => (
+                <article
+                  key={appointment.id}
+                  className="rounded-xl bg-[#fff8f4] p-4 text-sm"
+                >
+                  <h4 className="font-semibold text-[#26322e]">
+                    {appointment.patientName}
+                  </h4>
+                  <div className="mt-3 grid gap-2 text-[#69736f] sm:grid-cols-2">
+                    <InfoRow
+                      label="Due date"
+                      value={appointment.patientDueDate || "Not provided"}
+                    />
+                    <InfoRow
+                      label="Pregnancy week"
+                      value={appointment.patientPregnancyWeek || "Not provided"}
+                    />
+                    <InfoRow
+                      label="Blood type"
+                      value={appointment.patientBloodType || "Not provided"}
+                    />
+                    <InfoRow
+                      label="Emergency contact"
+                      value={appointment.patientEmergencyContact || "Not provided"}
+                    />
+                  </div>
+                  <p className="mt-3 leading-6 text-[#69736f]">
+                    <span className="font-semibold text-[#3b4944]">
+                      Medical history or allergies:
+                    </span>{" "}
+                    {appointment.patientMedicalHistory || "Not provided"}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     );
@@ -1105,7 +1188,7 @@ const WorkspaceView = ({
               specialty: doctorProfile.specialty,
             };
 
-            localStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+            sessionStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
             localStorage.setItem("doctorUser", JSON.stringify(updatedUser));
             setProfileSaved(true);
             window.setTimeout(() => setProfileSaved(false), 2200);
@@ -1189,14 +1272,6 @@ const WorkspaceView = ({
             {profileSaved ? "Saved" : "Save changes"}
           </button>
         </form>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#e74c3c] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c0392b]"
-        >
-          <LogOut size={17} />
-          Logout
-        </button>
       </section>
     );
   }

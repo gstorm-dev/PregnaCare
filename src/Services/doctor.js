@@ -29,7 +29,7 @@ export const getAvailableDoctors = () => {
       localStorage.getItem("doctorUser") || "null",
     );
     const signedInDoctor = JSON.parse(
-      localStorage.getItem("loggedInUser") || "null",
+      sessionStorage.getItem("loggedInUser") || "null",
     );
 
     const submittedDoctors = [

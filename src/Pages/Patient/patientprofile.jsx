@@ -3,7 +3,7 @@ import { Check, FileText, HeartPulse, Save, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PatientProfile = () => {
-  const savedUser = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+  const savedUser = JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
   const [form, setForm] = useState({
     name: savedUser?.name || "Jane Doe",
     email: savedUser?.email || "jane@example.com",

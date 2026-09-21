@@ -19,7 +19,9 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import {
   createAppointment,
+  getConsultationRoomName,
   getAppointments,
+  getUserNotifications,
   removeAppointment,
 } from "../../Services/appointments";
 import { getAvailableDoctors } from "../../Services/doctor";
@@ -40,9 +42,10 @@ const PatientDashboard = () => {
   const [appointmentSent, setAppointmentSent] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [appointmentNotifications, setAppointmentNotifications] = useState([]);
   const savedUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("loggedInUser") || "null");
+      return JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
     } catch {
       return null;
     }
@@ -50,9 +53,33 @@ const PatientDashboard = () => {
 
   const displayName = savedUser?.name || "Jane Doe";
   const firstName = displayName.split(" ")[0];
+  const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(savedUser?.email || displayName)}`;
+
+  useEffect(() => {
+    const syncNotifications = () => {
+      const patient = JSON.parse(
+        sessionStorage.getItem("loggedInUser") || "null",
+      );
+      const notifications = getUserNotifications(patient, "patient");
+      setAppointmentNotifications(notifications);
+    };
+
+    syncNotifications();
+    const timer = window.setInterval(syncNotifications, 1_000);
+    window.addEventListener("pregnacare:appointments-updated", syncNotifications);
+    window.addEventListener("storage", syncNotifications);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(
+        "pregnacare:appointments-updated",
+        syncNotifications,
+      );
+      window.removeEventListener("storage", syncNotifications);
+    };
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
+    sessionStorage.removeItem("loggedInUser");
     navigate("/");
   };
 
@@ -90,9 +117,11 @@ const PatientDashboard = () => {
           </p>
           <p className="mt-2 truncate font-serif text-2xl">{firstName}!</p>
           <div className="mt-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]">
-              {displayName.slice(0, 1).toUpperCase()}
-            </div>
+            <img
+              src={avatarUrl}
+              alt={`${displayName} profile`}
+              className="h-11 w-11 rounded-full object-cover"
+            />
             <div>
               <p className="text-sm font-semibold">{displayName}</p>
               <p className="text-xs text-[#69736f]">Patient</p>
@@ -172,7 +201,7 @@ const PatientDashboard = () => {
               Patient workspace
             </p>
             <h1 className="mt-1 font-serif text-2xl">
-              Good morning, {firstName} <span aria-hidden="true">👋</span>
+              Hello!! {firstName} <span aria-hidden="true"></span>
             </h1>
           </div>
           <div className="relative ml-auto flex items-center gap-3">
@@ -183,22 +212,41 @@ const PatientDashboard = () => {
               className="relative rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#69736f] transition hover:border-[#e7b4a3] hover:text-[#c87861]"
             >
               <Bell size={19} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+              {appointmentNotifications.length > 0 && (
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+              )}
             </button>
             <button
               type="button"
               aria-label="Open profile"
               onClick={() => setActiveView("profile")}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e6b7a6] font-semibold text-[#7d493b]"
+              className="h-10 w-10 overflow-hidden rounded-full"
             >
-              {displayName.slice(0, 1).toUpperCase()}
+              <img src={avatarUrl} alt={`${displayName} profile`} className="h-full w-full object-cover" />
             </button>
             {notificationsOpen && (
-              <div className="absolute right-0 top-14 w-64 rounded-2xl border border-[#eadfd9] bg-white p-4 text-sm shadow-xl">
-                <p className="font-semibold">You are all caught up.</p>
-                <p className="mt-1 text-[#69736f]">
-                  Your next appointment is on Thursday.
-                </p>
+              <div className="absolute right-0 top-14 w-80 rounded-2xl border border-[#eadfd9] bg-white p-4 text-sm shadow-xl">
+                {appointmentNotifications.length === 0 ? (
+                  <p className="font-semibold">You are all caught up.</p>
+                ) : (
+                  appointmentNotifications.map((notification) => (
+                    <button
+                      key={notification.id}
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/consultation/${getConsultationRoomName(notification.appointment)}?appointment=${encodeURIComponent(notification.appointment.id)}`,
+                        )
+                      }
+                      className="w-full rounded-xl bg-[#fff8f4] p-3 text-left hover:bg-[#fff0ea]"
+                    >
+                      <p className="font-semibold">
+                        {notification.title}
+                      </p>
+                      <p className="mt-1 text-[#69736f]">{notification.text}</p>
+                    </button>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -667,6 +715,7 @@ const AppointmentWorkspace = ({
   appointmentSent,
   setAppointmentSent,
 }) => {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [date, setDate] = useState("2026-09-24");
   const [time, setTime] = useState("10:30 AM");
@@ -678,7 +727,7 @@ const AppointmentWorkspace = ({
   useEffect(() => {
     const syncAppointments = () => {
       const patient = JSON.parse(
-        localStorage.getItem("loggedInUser") || "null",
+        sessionStorage.getItem("loggedInUser") || "null",
       );
       setAppointments(
         getAppointments().filter(
@@ -687,15 +736,20 @@ const AppointmentWorkspace = ({
       );
     };
     syncAppointments();
+    const timer = window.setInterval(syncAppointments, 1_000);
     window.addEventListener(
       "pregnacare:appointments-updated",
       syncAppointments,
     );
-    return () =>
+    window.addEventListener("storage", syncAppointments);
+    return () => {
+      window.clearInterval(timer);
       window.removeEventListener(
         "pregnacare:appointments-updated",
         syncAppointments,
       );
+      window.removeEventListener("storage", syncAppointments);
+    };
   }, []);
 
   useEffect(() => {
@@ -727,7 +781,7 @@ const AppointmentWorkspace = ({
 
   const handleBooking = (event) => {
     event.preventDefault();
-    const patient = JSON.parse(localStorage.getItem("loggedInUser") || "null");
+    const patient = JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
     const selectedDoctorInfo = doctorOptions.find((item) => item.name === doctor);
 
     if (!selectedDoctorInfo?.email) {
@@ -737,12 +791,20 @@ const AppointmentWorkspace = ({
     createAppointment({
       patientName: patient?.name || "Jane Doe",
       patientEmail: patient?.email || "",
+      patientDueDate: patient?.dueDate || "Not provided",
+      patientPregnancyWeek: patient?.pregnancyWeek || "Not provided",
+      patientBloodType: patient?.bloodType || "Not provided",
+      patientMedicalHistory: patient?.medicalHistory || "Not provided",
+      patientEmergencyContact: patient?.emergencyContact || "Not provided",
       doctorName: selectedDoctorInfo?.name || doctor,
       doctorEmail: selectedDoctorInfo?.email || "",
+      doctorPhone:
+        selectedDoctorInfo?.phone || selectedDoctorInfo?.contactInfo || "",
       doctorClinic: selectedDoctorInfo?.clinic || selectedDoctorInfo?.location || "",
       doctorSpecialty: selectedDoctorInfo?.specialty || "",
       reason: "Prenatal check-up",
       date: `${date} · ${time}`,
+      scheduledAt: `${date}T${time === "10:30 AM" ? "10:30" : time === "2:00 PM" ? "14:00" : "16:30"}:00`,
       requestedAt: new Date().toLocaleString([], {
         dateStyle: "medium",
         timeStyle: "short",
@@ -793,6 +855,19 @@ const AppointmentWorkspace = ({
                   >
                     Cancel appointment
                   </button>
+                  {appointment.status === "Accepted" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/consultation/${getConsultationRoomName(appointment)}?appointment=${encodeURIComponent(appointment.id)}`,
+                        )
+                      }
+                      className="mt-3 ml-2 inline-flex items-center rounded-xl bg-[#26322e] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3b4944]"
+                    >
+                      Open care chat
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

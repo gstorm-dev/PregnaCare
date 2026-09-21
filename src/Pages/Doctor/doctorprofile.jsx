@@ -27,7 +27,7 @@ const DoctorProfile = ({
           clinicName: doctorProfile.clinic,
           specialty: doctorProfile.specialty,
         };
-        localStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
+        sessionStorage.setItem("loggedInUser", JSON.stringify(updatedUser));
         localStorage.setItem("doctorUser", JSON.stringify(updatedUser));
         setProfileSaved(true);
         window.setTimeout(() => setProfileSaved(false), 2200);
