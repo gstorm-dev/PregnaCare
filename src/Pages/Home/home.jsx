@@ -9,8 +9,25 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import Navbar from "../../components/navbar";
 import Footer from "../../components/footer";
+
+const reveal = {
+  hidden: { opacity: 0, y: 28 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const scrollViewport = { once: true, amount: 0.2 };
 
 const Home = () => {
   const services = [
@@ -104,32 +121,27 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#fffdfb] text-[#26322e]">
+    <div className="min-h-screen overflow-x-hidden bg-[#F8FAFC] text-[#0F172A]">
       <Navbar />
 
-      <section className="relative overflow-hidden bg-[#fff3ef]">
-
+      <section className="relative overflow-hidden bg-[#EFF6FF] pt-[73px]">
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-6 sm:py-20 lg:min-h-175 lg:grid-cols-2 lg:gap-16 lg:px-8 lg:py-24">
-          <div className="max-w-2xl">
-            
-
-            <h1 className="font-serif text-4xl leading-[1.02] tracking-tight text-[#26322e] sm:text-5xl md:text-6xl lg:text-7xl">
+          <motion.div className="max-w-2xl" variants={stagger} initial="hidden" animate="visible">
+            <motion.h1 variants={reveal} className="font-serif text-4xl leading-[1.02] tracking-tight text-[#0F172A] sm:text-5xl md:text-6xl lg:text-7xl">
               Pregnancy care,
-              <span className="block text-[#c87861]">
-                made simpler.
-              </span>
-            </h1>
+              <span className="block text-[#2563EB]">made simpler.</span>
+            </motion.h1>
 
-            <p className="mt-6 max-w-xl text-base leading-7 text-[#69736f] sm:text-lg sm:leading-8">
+            <motion.p variants={reveal} className="mt-6 max-w-xl text-base leading-7 text-[#69736f] sm:text-lg sm:leading-8">
               PregnaCare brings expectant mothers and healthcare professionals
               together in one simple, supportive platform designed for every
               stage of pregnancy.
-            </p>
+            </motion.p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <motion.div variants={reveal} className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/patient/signup"
-                className="inline-flex items-center justify-center gap-2 bg-[#d98268] px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_25px_rgba(217,130,104,.28)] transition hover:-translate-y-1 hover:bg-[#c66f57] sm:px-7"
+                className="inline-flex items-center justify-center gap-2 bg-[#2563EB] px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_25px_rgba(37,99,235,.28)] transition hover:-translate-y-1 hover:bg-[#1D4ED8] sm:px-7"
               >
                 Start Your Journey
                 <ArrowRight size={17} />
@@ -137,14 +149,14 @@ const Home = () => {
 
               <Link
                 to="/#services"
-                className="inline-flex items-center justify-center gap-2 border border-[#d8c6bf] bg-white px-6 py-3.5 text-sm font-bold text-[#3b4944] transition hover:-translate-y-1 hover:border-[#d98268] hover:text-[#c87861] sm:px-7"
+                className="inline-flex items-center justify-center gap-2 border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition hover:-translate-y-1 hover:border-blue-300 hover:text-[#2563EB] sm:px-7"
               >
                 Find a Doctor
                 <Stethoscope size={17} />
               </Link>
-            </div>
+            </motion.div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-6 border-t border-slate-200 pt-7">
+            <motion.div variants={reveal} className="mt-10 flex flex-wrap items-center gap-6 border-t border-slate-200 pt-7">
               <div className="flex -space-x-3">
                 <img
                   src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80"
@@ -182,11 +194,11 @@ const Home = () => {
                   Trusted by our growing community
                 </p>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
-          <div className="relative mx-auto w-full max-w-xl">
-            <div className="relative overflow-hidden rounded-4xl border border-white bg-white p-2 shadow-[0_24px_70px_rgba(54,45,39,.18)] sm:p-3">
+          <motion.div className="relative mx-auto w-full max-w-xl" initial={{ opacity: 0, scale: 0.94, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}>
+            <div className="relative overflow-hidden rounded-4xl border border-white bg-white p-2 shadow-[0_24px_70px_rgba(30,58,138,.16)] sm:p-3">
               <img
                 src="images/p3.jpg"
                 alt="Mother receiving pregnancy care"
@@ -196,7 +208,7 @@ const Home = () => {
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/60 bg-white/95 p-4 shadow-xl backdrop-blur-xl sm:bottom-8 sm:left-8 sm:right-8 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#fff0ea] text-[#c87861]">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#2563EB]">
                       <HeartPulse size={21} />
                     </div>
 
@@ -211,19 +223,18 @@ const Home = () => {
                   </div>
 
                   <div className="text-right">
-                    <p className="text-xl font-bold text-[#c87861]">68%</p>
+                    <p className="text-xl font-bold text-[#2563EB]">68%</p>
                     <p className="text-[11px] text-slate-500">Progress</p>
                   </div>
                 </div>
 
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full w-[68%] rounded-full bg-blue-700"></div>
+                  <motion.div className="h-full w-[68%] rounded-full bg-blue-700" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1, delay: 0.8, ease: "easeOut" }} style={{ transformOrigin: "left" }} />
                 </div>
               </div>
             </div>
 
-
-            <div className="absolute -right-4 bottom-20 hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-xl sm:block lg:-right-8">
+            <motion.div className="absolute -right-4 bottom-20 hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-xl sm:block lg:-right-8" animate={{ y: [0, -10, 0] }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                   <ShieldCheck size={20} />
@@ -234,46 +245,47 @@ const Home = () => {
                   <p className="text-sm font-bold text-slate-900">On you</p>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
-      {/* TRUST STATS */}
       <section className="border-y border-slate-100 bg-white">
         <div className="mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-4">
-          <div className="border-b border-slate-100 px-5 py-7 text-center md:border-b-0 md:border-r">
-            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">
-              10K+
-            </p>
+          <motion.div className="border-b border-slate-100 px-5 py-7 text-center md:border-b-0 md:border-r" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport}>
+            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">10K+</p>
             <p className="mt-1 text-sm text-slate-500">Patients supported</p>
-          </div>
+          </motion.div>
 
-          <div className="border-b border-slate-100 px-5 py-7 text-center md:border-b-0 md:border-r">
-            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">
-              500+
+          <motion.div className="border-b border-slate-100 px-5 py-7 text-center md:border-b-0 md:border-r" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport} transition={{ delay: 0.1 }}>
+            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">500+</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Healthcare professionals
             </p>
-            <p className="mt-1 text-sm text-slate-500">Healthcare professionals</p>
-          </div>
+          </motion.div>
 
-          <div className="border-r border-slate-100 px-5 py-7 text-center">
+          <motion.div className="border-r border-slate-100 px-5 py-7 text-center" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport} transition={{ delay: 0.2 }}>
             <p className="text-2xl font-bold text-emerald-600 sm:text-3xl">
               24/7
             </p>
             <p className="mt-1 text-sm text-slate-500">Access to information</p>
-          </div>
+          </motion.div>
 
-          <div className="px-5 py-7 text-center">
-            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">
-              98%
-            </p>
+          <motion.div className="px-5 py-7 text-center" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport} transition={{ delay: 0.3 }}>
+            <p className="text-2xl font-bold text-blue-700 sm:text-3xl">98%</p>
             <p className="mt-1 text-sm text-slate-500">Patient satisfaction</p>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section id="about" className="scroll-mt-24 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <motion.section
+        id="about"
+        className="scroll-mt-24 px-5 py-20 sm:px-6 lg:px-8 lg:py-28"
+        variants={reveal}
+        initial="hidden"
+        whileInView="visible"
+        viewport={scrollViewport}
+      >
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="relative">
             <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -322,9 +334,9 @@ const Home = () => {
             </p>
 
             <p className="mt-4 leading-8 text-slate-600">
-              PregnaCare brings these experiences together so patients can
-              focus on what matters most — taking care of themselves and their
-              growing families.
+              PregnaCare brings these experiences together so patients can focus
+              on what matters most — taking care of themselves and their growing
+              families.
             </p>
 
             <div className="mt-7 space-y-4">
@@ -353,10 +365,16 @@ const Home = () => {
             </Link>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* SERVICES */}
-      <section id="services" className="scroll-mt-24 bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <motion.section
+        id="services"
+        className="scroll-mt-24 bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28"
+        variants={reveal}
+        initial="hidden"
+        whileInView="visible"
+        viewport={scrollViewport}
+      >
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div className="max-w-2xl">
@@ -418,10 +436,9 @@ const Home = () => {
             })}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* DOCTORS */}
-      <section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <motion.section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-28" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport}>
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
@@ -452,7 +469,11 @@ const Home = () => {
                   />
 
                   <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-sm font-bold text-slate-900 shadow">
-                    <Star size={14} fill="currentColor" className="text-amber-400" />
+                    <Star
+                      size={14}
+                      fill="currentColor"
+                      className="text-amber-400"
+                    />
                     {doctor.rating}
                   </div>
 
@@ -496,10 +517,9 @@ const Home = () => {
             </Link>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* HOW IT WORKS */}
-      <section className="bg-blue-950 px-5 py-20 text-white sm:px-6 lg:px-8 lg:py-24">
+      <motion.section className="bg-blue-950 px-5 py-20 text-white sm:px-6 lg:px-8 lg:py-24" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport}>
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-300">
@@ -512,8 +532,8 @@ const Home = () => {
             </h2>
 
             <p className="mt-5 max-w-xl leading-7 text-blue-100">
-              From creating your account to managing your care, PregnaCare
-              keeps your journey simple and organized.
+              From creating your account to managing your care, PregnaCare keeps
+              your journey simple and organized.
             </p>
           </div>
 
@@ -553,10 +573,9 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* ARTICLES */}
-      <section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <motion.section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-28" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport}>
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div>
@@ -614,10 +633,9 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* TESTIMONIALS */}
-      <section className="bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <motion.section className="bg-slate-50 px-5 py-20 sm:px-6 lg:px-8 lg:py-28" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport}>
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-600">
@@ -648,9 +666,7 @@ const Home = () => {
                 </p>
 
                 <div className="mt-7 border-t border-slate-100 pt-5">
-                  <p className="font-bold text-slate-950">
-                    {testimonial.name}
-                  </p>
+                  <p className="font-bold text-slate-950">{testimonial.name}</p>
 
                   <p className="mt-1 text-sm text-slate-500">
                     {testimonial.role}
@@ -660,16 +676,15 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* CTA */}
-      <section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-24">
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-4xl bg-[#c87861] px-6 py-16 text-center shadow-[0_24px_60px_rgba(125,79,62,.18)] sm:px-10 md:rounded-5xl md:px-16 md:py-20">
+      <motion.section className="px-5 py-20 sm:px-6 lg:px-8 lg:py-24" variants={reveal} initial="hidden" whileInView="visible" viewport={scrollViewport}>
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-4xl bg-[#2563EB] px-6 py-16 text-center shadow-[0_24px_60px_rgba(30,64,175,.18)] sm:px-10 md:rounded-5xl md:px-16 md:py-20">
           <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
-          <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-[#f2c8b8]/25 blur-3xl"></div>
+          <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-blue-200/25 blur-3xl"></div>
 
           <div className="relative">
-            <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-[#ffe1d7]">
+            <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-blue-100">
               <HeartPulse size={15} />
               Your journey starts here
             </div>
@@ -678,7 +693,7 @@ const Home = () => {
               Better pregnancy care is just a few clicks away.
             </h2>
 
-            <p className="mx-auto mt-5 max-w-2xl leading-7 text-[#fff0ea]">
+            <p className="mx-auto mt-5 max-w-2xl leading-7 text-blue-100">
               Create your PregnaCare account and take the first step toward a
               more organized and connected pregnancy journey.
             </p>
@@ -686,7 +701,7 @@ const Home = () => {
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 to="/patient/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-7 py-3.5 font-bold text-[#b66d58] transition hover:bg-[#fff0ea]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-7 py-3.5 font-bold text-[#1D4ED8] transition hover:bg-blue-50"
               >
                 Create Patient Account
                 <ArrowRight size={17} />
@@ -694,7 +709,7 @@ const Home = () => {
 
               <Link
                 to="/doctor/signup"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 font-bold text-white backdrop-blur transition hover:bg-white hover:text-[#b66d58]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3.5 font-bold text-white backdrop-blur transition hover:bg-white hover:text-[#1D4ED8]"
               >
                 Join as a Doctor
                 <Stethoscope size={17} />
@@ -702,7 +717,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       <Footer />
     </div>

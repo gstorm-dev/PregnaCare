@@ -1,1 +1,107 @@
 @import "tailwindcss";
+
+.patient-dashboard button,
+.doctor-dashboard button {
+  cursor: pointer;
+}
+
+.patient-dashboard [class~="bg-[#d98268]"],
+.doctor-dashboard [class~="bg-[#d98268]"] {
+  background-color: #2563eb !important;
+}
+
+.patient-dashboard [class~="bg-[#fff0ea]"],
+.doctor-dashboard [class~="bg-[#fff0ea]"] {
+  background-color: #eff6ff !important;
+}
+
+.patient-dashboard [class~="bg-[#fff3ef]"],
+.doctor-dashboard [class~="bg-[#fff3ef]"] {
+  background-color: #eff6ff !important;
+}
+
+.patient-dashboard [class~="bg-[#fff8f4]"],
+.doctor-dashboard [class~="bg-[#fff8f4]"] {
+  background-color: #f8fafc !important;
+}
+
+.patient-dashboard [class~="bg-[#fffaf8]"],
+.doctor-dashboard [class~="bg-[#fffaf8]"] {
+  background-color: #f8fafc !important;
+}
+
+.patient-dashboard [class~="bg-[#fff7f5]"],
+.doctor-dashboard [class~="bg-[#fff7f5]"] {
+  background-color: #f8fafc !important;
+}
+
+.patient-dashboard [class~="bg-[#edf3ef]"],
+.doctor-dashboard [class~="bg-[#edf3ef]"] {
+  background-color: #ecfdf5 !important;
+}
+
+.patient-dashboard [class~="bg-[#f8e7e1]"],
+.doctor-dashboard [class~="bg-[#f8e7e1]"] {
+  background-color: #dbeafe !important;
+}
+
+.patient-dashboard [class~="bg-[#fff8e9]"],
+.doctor-dashboard [class~="bg-[#fff8e9]"] {
+  background-color: #fffbeb !important;
+}
+
+.patient-dashboard [class~="bg-[#f8f6f3]"],
+.doctor-dashboard [class~="bg-[#f8f6f3]"] {
+  background-color: #f8fafc !important;
+}
+
+.patient-dashboard [class~="text-[#d98268]"],
+.doctor-dashboard [class~="text-[#d98268]"],
+.patient-dashboard [class~="text-[#c87861]"],
+.doctor-dashboard [class~="text-[#c87861]"] {
+  color: #2563eb !important;
+}
+
+.patient-dashboard [class~="text-[#b66d58]"],
+.doctor-dashboard [class~="text-[#b66d58]"] {
+  color: #1d4ed8 !important;
+}
+
+.patient-dashboard [class~="text-[#69736f]"],
+.doctor-dashboard [class~="text-[#69736f]"] {
+  color: #475569 !important;
+}
+
+.patient-dashboard [class~="text-[#26322e]"],
+.doctor-dashboard [class~="text-[#26322e]"] {
+  color: #0f172a !important;
+}
+
+.patient-dashboard [class~="text-[#3b4944]"],
+.doctor-dashboard [class~="text-[#3b4944]"] {
+  color: #1e293b !important;
+}
+
+.patient-dashboard [class~="text-[#6f9387]"],
+.doctor-dashboard [class~="text-[#6f9387]"] {
+  color: #059669 !important;
+}
+
+.patient-dashboard [class~="border-[#d98268]"],
+.doctor-dashboard [class~="border-[#d98268]"],
+.patient-dashboard [class~="focus:border-[#d98268]"]:focus,
+.doctor-dashboard [class~="focus:border-[#d98268]"]:focus {
+  border-color: #2563eb !important;
+}
+
+.patient-dashboard [class~="border-[#eadfd9]"],
+.doctor-dashboard [class~="border-[#eadfd9]"],
+.patient-dashboard [class~="border-[#e9e2dc]"],
+.doctor-dashboard [class~="border-[#e9e2dc]"] {
+  border-color: #e2e8f0 !important;
+}
+
+.patient-dashboard [class~="border-[#f0e8e3]"],
+.doctor-dashboard [class~="border-[#f0e8e3]"] {
+  border-color: #f1f5f9 !important;
+}
