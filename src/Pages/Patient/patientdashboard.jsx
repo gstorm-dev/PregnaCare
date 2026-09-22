@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Bell,
   CalendarDays,
   ChevronRight,
-  CircleHelp,
   FileText,
   HeartPulse,
   LayoutDashboard,
@@ -13,7 +13,6 @@ import {
   Stethoscope,
   Search,
   Save,
-  UserRound,
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -43,6 +42,9 @@ const PatientDashboard = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [profileSaved, setProfileSaved] = useState(false);
   const [appointmentNotifications, setAppointmentNotifications] = useState([]);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState(
+    new Set(),
+  );
   const savedUser = useMemo(() => {
     try {
       return JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
@@ -53,14 +55,28 @@ const PatientDashboard = () => {
 
   const displayName = savedUser?.name || "Jane Doe";
   const firstName = displayName.split(" ")[0];
-  const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(savedUser?.email || displayName)}`;
+  const avatarUrl = "/images/p2.jpg";
+  const dueDate = savedUser?.dueDate || "Not provided";
+  const pregnancyWeek = savedUser?.pregnancyWeek
+    ? `Week ${savedUser.pregnancyWeek}`
+    : "Not provided";
+  const bloodType = savedUser?.bloodType || "Not provided";
+  const patientAppointments = getAppointments().filter(
+    (appointment) => appointment.patientEmail === savedUser?.email,
+  );
+  const assignedAppointment =
+    patientAppointments.find((appointment) => appointment.status === "Accepted") ||
+    patientAppointments.find((appointment) => appointment.status === "Pending");
+  const currentDoctor = assignedAppointment?.doctorName || "Not assigned";
 
   useEffect(() => {
     const syncNotifications = () => {
       const patient = JSON.parse(
         sessionStorage.getItem("loggedInUser") || "null",
       );
-      const notifications = getUserNotifications(patient, "patient");
+      const notifications = getUserNotifications(patient, "patient").filter(
+        (notification) => !dismissedNotificationIds.has(notification.id),
+      );
       setAppointmentNotifications(notifications);
     };
 
@@ -76,7 +92,18 @@ const PatientDashboard = () => {
       );
       window.removeEventListener("storage", syncNotifications);
     };
-  }, []);
+  }, [dismissedNotificationIds]);
+
+  const clearAllNotifications = () => {
+    setDismissedNotificationIds(
+      (current) =>
+        new Set([
+          ...current,
+          ...appointmentNotifications.map((notification) => notification.id),
+        ]),
+    );
+    setAppointmentNotifications([]);
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("loggedInUser");
@@ -84,9 +111,9 @@ const PatientDashboard = () => {
   };
 
   return (
-    <div className="patient-dashboard min-h-screen bg-[#f8f6f3] text-[#26322e]">
+    <div className="patient-dashboard min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[#e9e2dc] bg-[#fffdfb] px-5 py-6 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-center justify-between px-3">
           <Link
@@ -94,25 +121,25 @@ const PatientDashboard = () => {
             className="flex items-center gap-3"
             onClick={() => setSidebarOpen(false)}
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#d98268] text-xl font-bold text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#2563EB] text-xl font-bold text-white">
               ✦
             </span>
             <span className="font-serif text-2xl font-bold tracking-tight">
-              Pregna<span className="text-[#c87861]">Care</span>
+              Pregna<span className="text-[#2563EB]">Care</span>
             </span>
           </Link>
           <button
             type="button"
             aria-label="Close menu"
             onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-2 text-[#69736f] hover:bg-[#fff0ea] lg:hidden"
+            className="rounded-lg p-2 text-slate-500 hover:bg-[#EFF6FF] lg:hidden"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="mt-10 rounded-2xl bg-[#fff3ef] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#c87861]">
+        <div className="mt-10 rounded-2xl bg-[#EFF6FF] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#2563EB]">
             Welcome back
           </p>
           <p className="mt-2 truncate font-serif text-2xl">{firstName}!</p>
@@ -124,7 +151,7 @@ const PatientDashboard = () => {
             />
             <div>
               <p className="text-sm font-semibold">{displayName}</p>
-              <p className="text-xs text-[#69736f]">Patient</p>
+              <p className="text-xs text-slate-500">Patient</p>
             </div>
           </div>
         </div>
@@ -138,7 +165,7 @@ const PatientDashboard = () => {
                 setActiveView(view);
                 setSidebarOpen(false);
               }}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${activeView === view ? "bg-[#d98268] text-white shadow-[0_8px_18px_rgba(217,130,104,.22)]" : "text-[#69736f] hover:bg-[#fff0ea] hover:text-[#b66d58]"}`}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${activeView === view ? "bg-[#2563EB] text-white shadow-[0_8px_18px_rgba(37,99,235,.22)]" : "text-slate-500 hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"}`}
             >
               <Icon size={19} strokeWidth={index === 0 ? 2.3 : 1.8} />
               {label}
@@ -146,22 +173,14 @@ const PatientDashboard = () => {
           ))}
         </nav>
 
-        <div className="mt-auto border-t border-[#eee6e0] pt-5">
-          <Link
-            to="/patient/profile"
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#69736f] hover:bg-[#fff0ea] hover:text-[#b66d58]"
-          >
-            <CircleHelp size={19} />
-            Help Center
-          </Link>
+        <div className="mt-auto border-t border-slate-100 pt-5">
           <button
             type="button"
             onClick={() => {
               setActiveView("settings");
               setSidebarOpen(false);
             }}
-            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${activeView === "settings" ? "bg-[#fff0ea] text-[#b66d58]" : "text-[#69736f] hover:bg-[#fff0ea] hover:text-[#b66d58]"}`}
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${activeView === "settings" ? "bg-[#EFF6FF] text-[#1D4ED8]" : "text-slate-500 hover:bg-[#EFF6FF] hover:text-[#1D4ED8]"}`}
           >
             <Settings size={19} />
             Settings
@@ -169,7 +188,7 @@ const PatientDashboard = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#b66d58] hover:bg-[#fff0ea]"
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-[#1D4ED8] hover:bg-[#EFF6FF]"
           >
             <LogOut size={19} />
             Logout
@@ -182,22 +201,22 @@ const PatientDashboard = () => {
           type="button"
           aria-label="Close navigation overlay"
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-30 bg-[#26322e]/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-slate-900/30 lg:hidden"
         />
       )}
 
       <main className="min-h-screen lg:ml-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-[#e9e2dc] bg-[#f8f6f3]/95 px-5 backdrop-blur sm:px-8 lg:px-10">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-[#F8FAFC]/95 px-5 backdrop-blur sm:px-8 lg:px-10">
           <button
             type="button"
             aria-label="Open menu"
             onClick={() => setSidebarOpen(true)}
-            className="rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#c87861] lg:hidden"
+            className="rounded-xl border border-slate-200 bg-white p-2.5 text-[#2563EB] lg:hidden"
           >
             <Menu size={20} />
           </button>
           <div className="hidden sm:block">
-            <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">
+            <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#2563EB]">
               Patient workspace
             </p>
             <h1 className="mt-1 font-serif text-2xl">
@@ -209,11 +228,11 @@ const PatientDashboard = () => {
               type="button"
               aria-label="Notifications"
               onClick={() => setNotificationsOpen((open) => !open)}
-              className="relative rounded-xl border border-[#e9e2dc] bg-white p-2.5 text-[#69736f] transition hover:border-[#e7b4a3] hover:text-[#c87861]"
+              className="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 transition hover:border-blue-300 hover:text-[#2563EB]"
             >
               <Bell size={19} />
               {appointmentNotifications.length > 0 && (
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#d98268]" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#2563EB]" />
               )}
             </button>
             <button
@@ -229,28 +248,40 @@ const PatientDashboard = () => {
                 {appointmentNotifications.length === 0 ? (
                   <p className="font-semibold">You are all caught up.</p>
                 ) : (
-                  appointmentNotifications.map((notification) => (
-                    <button
-                      key={notification.id}
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          `/consultation/${getConsultationRoomName(notification.appointment)}?appointment=${encodeURIComponent(notification.appointment.id)}`,
-                        )
-                      }
-                      className="w-full rounded-xl bg-[#fff8f4] p-3 text-left hover:bg-[#fff0ea]"
-                    >
-                      <p className="font-semibold">
-                        {notification.title}
-                      </p>
-                      <p className="mt-1 text-[#69736f]">{notification.text}</p>
-                    </button>
-                  ))
+                  <>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="font-semibold">Notifications</p>
+                      <button
+                        type="button"
+                        onClick={clearAllNotifications}
+                        className="cursor-pointer text-xs font-semibold text-[#c87861] hover:text-[#b66d58]"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    {appointmentNotifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            `/consultation/${getConsultationRoomName(notification.appointment)}?appointment=${encodeURIComponent(notification.appointment.id)}`,
+                          )
+                        }
+                        className="mb-2 w-full rounded-xl bg-[#fff8f4] p-3 text-left last:mb-0 hover:bg-[#fff0ea]"
+                      >
+                        <p className="font-semibold">
+                          {notification.title}
+                        </p>
+                        <p className="mt-1 text-[#69736f]">{notification.text}</p>
+                      </button>
+                    ))}
+                  </>
                 )}
               </div>
             )}
           </div>
-        </header>
+        </motion.header>
 
         <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
           <div className="mb-8 sm:hidden">
@@ -266,14 +297,15 @@ const PatientDashboard = () => {
             <>
               <section className="grid gap-5 md:grid-cols-2">
                 <DashboardCard
-                  icon={UserRound}
+                  avatar={avatarUrl}
                   title="My Profile"
                   accent="peach"
                 >
                   <InfoRow label="Name" value={displayName} />
-                  <InfoRow label="Due Date" value="October 24, 2026" />
-                  <InfoRow label="Doctor" value="Dr. Sarah Johnson" />
-                  <InfoRow label="Pregnancy Week" value="Week 22" />
+                  <InfoRow label="Due Date" value={dueDate} />
+                  <InfoRow label="Doctor" value={currentDoctor} />
+                  <InfoRow label="Pregnancy Week" value={pregnancyWeek} />
+                  <InfoRow label="Blood Type" value={bloodType} />
                 </DashboardCard>
                 <DashboardCard
                   icon={FileText}
@@ -366,19 +398,22 @@ const PatientDashboard = () => {
           )}
 
           {activeView !== "dashboard" && (
-            <WorkspaceView
-              view={activeView}
-              setActiveView={setActiveView}
-              selectedDoctor={selectedDoctor}
-              setSelectedDoctor={setSelectedDoctor}
-              doctorQuery={doctorQuery}
-              setDoctorQuery={setDoctorQuery}
-              appointmentSent={appointmentSent}
-              setAppointmentSent={setAppointmentSent}
-              profileSaved={profileSaved}
-              setProfileSaved={setProfileSaved}
-              displayName={displayName}
-            />
+            <motion.div key={activeView} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+              <WorkspaceView
+                view={activeView}
+                setActiveView={setActiveView}
+                selectedDoctor={selectedDoctor}
+                setSelectedDoctor={setSelectedDoctor}
+                doctorQuery={doctorQuery}
+                setDoctorQuery={setDoctorQuery}
+                appointmentSent={appointmentSent}
+                setAppointmentSent={setAppointmentSent}
+                profileSaved={profileSaved}
+                setProfileSaved={setProfileSaved}
+                displayName={displayName}
+                patient={savedUser}
+              />
+            </motion.div>
           )}
         </div>
       </main>
@@ -398,6 +433,7 @@ const WorkspaceView = ({
   profileSaved,
   setProfileSaved,
   displayName,
+  patient,
 }) => {
   const doctors = getAvailableDoctors();
   const filteredDoctors = doctors.filter((doctor) =>
@@ -670,30 +706,53 @@ const WorkspaceView = ({
           <label className="text-sm font-semibold">
             Full name
             <input
-              defaultValue={displayName}
+              defaultValue={patient?.name || displayName}
               className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
             />
           </label>
           <label className="text-sm font-semibold">
             Email address
             <input
-              defaultValue="jane@example.com"
+              defaultValue={patient?.email || ""}
               type="email"
               className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
             />
           </label>
           <label className="text-sm font-semibold">
-            Phone number
+            Current pregnancy week
             <input
-              defaultValue="+234 801 234 5678"
+              defaultValue={patient?.pregnancyWeek || ""}
+              type="number"
               className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
             />
           </label>
           <label className="text-sm font-semibold">
             Due date
             <input
-              defaultValue="2026-10-24"
+              defaultValue={patient?.dueDate || ""}
               type="date"
+              className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+            />
+          </label>
+          <label className="text-sm font-semibold">
+            Blood type
+            <input
+              defaultValue={patient?.bloodType || ""}
+              className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+            />
+          </label>
+          <label className="text-sm font-semibold sm:col-span-2">
+            Medical history or allergies
+            <textarea
+              defaultValue={patient?.medicalHistory || ""}
+              rows={3}
+              className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
+            />
+          </label>
+          <label className="text-sm font-semibold sm:col-span-2">
+            Emergency contact
+            <input
+              defaultValue={patient?.emergencyContact || ""}
               className="mt-2 w-full rounded-xl border border-[#e9e2dc] bg-[#fffdfb] px-4 py-3 font-normal outline-none focus:border-[#d98268]"
             />
           </label>
@@ -954,7 +1013,7 @@ const SettingRow = ({ title, text }) => (
     <input
       type="checkbox"
       defaultChecked
-      className="h-5 w-5 accent-[#d98268]"
+      className="h-5 w-5 cursor-pointer accent-[#2563EB]"
     />
   </label>
 );
@@ -969,7 +1028,7 @@ const WorkspaceHeading = ({ eyebrow, title, text }) => (
   </div>
 );
 
-const DashboardCard = ({ icon: Icon, title, accent, children }) => {
+const DashboardCard = ({ icon: Icon, avatar, title, accent, children }) => {
   const accents = {
     peach: "bg-[#fff0ea] text-[#c87861]",
     sage: "bg-[#edf3ef] text-[#6f9387]",
@@ -977,17 +1036,25 @@ const DashboardCard = ({ icon: Icon, title, accent, children }) => {
     rose: "bg-[#f8e7e1] text-[#c87861]",
   };
   return (
-    <article className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
+    <motion.article initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -4 }} transition={{ duration: 0.3 }} className="rounded-2xl border border-[#eadfd9] bg-white p-6 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
       <div className="flex items-center gap-3">
         <div
           className={`flex h-11 w-11 items-center justify-center rounded-xl ${accents[accent]}`}
         >
-          <Icon size={21} />
+          {avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              className="h-11 w-11 rounded-xl object-cover"
+            />
+          ) : (
+            <Icon size={21} />
+          )}
         </div>
         <h2 className="font-serif text-2xl">{title}</h2>
       </div>
       <div className="mt-6">{children}</div>
-    </article>
+    </motion.article>
   );
 };
 
