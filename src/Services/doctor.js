@@ -1,5 +1,3 @@
-import { getAvatarUrl } from "../utils/avatar";
-
 export const getAvailableDoctors = () => {
   try {
     const storedDoctorUser = JSON.parse(
@@ -26,7 +24,7 @@ export const getAvailableDoctors = () => {
         location: doctor.clinic || doctor.clinicName || "Clinic",
         experience: doctor.experience || "Available",
         rating: doctor.rating || (index % 2 === 0 ? 4.9 : 4.8),
-        image: doctor.avatar || getAvatarUrl(doctor.email || doctor.name),
+        image: "/images/p1.jpg",
         nextSlot: doctor.nextSlot || "Available this week",
         email: doctor.email || "",
         phone: doctor.phone || doctor.contactInfo || "",
@@ -48,4 +46,3 @@ export const getAvailableDoctors = () => {
 
   return [];
 };
-

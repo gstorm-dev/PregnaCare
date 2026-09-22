@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Check, FileText, HeartPulse, Save, UserRound } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getAvatarUrl } from "../../utils/avatar";
 
 const PatientProfile = () => {
   const savedUser = JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
-  const avatarUrl = savedUser?.avatar || getAvatarUrl(savedUser?.email);
+  const avatarUrl = "/images/p2.jpg";
   const [form, setForm] = useState({
     name: savedUser?.name || "Jane Doe",
     email: savedUser?.email || "jane@example.com",
