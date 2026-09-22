@@ -289,7 +289,7 @@ const PatientDashboard = () => {
               Patient workspace
             </p>
             <h1 className="mt-1 font-serif text-2xl">
-              Good morning, {firstName} <span aria-hidden="true">👋</span>
+              Good morning, {firstName} <span aria-hidden="true"></span>
             </h1>
           </div>
 
