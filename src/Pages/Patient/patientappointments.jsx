@@ -7,7 +7,7 @@ import {
   getAppointments,
   removeAppointment,
 } from "../../Services/appointments";
-import { getAvailableDoctors } from "../../Services/doctor";
+import { getAvailableDoctors, subscribeToDoctors } from "../../Services/doctor";
 
 const PatientAppointments = () => {
   const [searchParams] = useSearchParams();
@@ -67,37 +67,38 @@ const PatientAppointments = () => {
   }, []);
 
   useEffect(() => {
-    const availableDoctors = getAvailableDoctors();
-    setDoctorOptions((current) => {
-      const sameList =
-        current.length === availableDoctors.length &&
-        current.every(
-          (item, index) =>
-            item.name === availableDoctors[index]?.name &&
-            item.email === availableDoctors[index]?.email,
-        );
-      return sameList ? current : availableDoctors;
-    });
+    return subscribeToDoctors((availableDoctors) => {
+      setDoctorOptions((current) => {
+        const sameList =
+          current.length === availableDoctors.length &&
+          current.every(
+            (item, index) =>
+              item.name === availableDoctors[index]?.name &&
+              item.email === availableDoctors[index]?.email,
+          );
+        return sameList ? current : availableDoctors;
+      });
 
-    if (availableDoctors.length === 0) {
-      return;
-    }
-
-    const requestedDoctor = searchParams.get("doctor");
-    const matchedDoctor = availableDoctors.find(
-      (item) => String(item.email || item.id) === requestedDoctor,
-    );
-
-    if (matchedDoctor) {
-      setDoctor(matchedDoctor.name);
-      return;
-    }
-
-    setDoctor((current) => {
-      if (availableDoctors.some((item) => item.name === current)) {
-        return current;
+      if (availableDoctors.length === 0) {
+        return;
       }
-      return availableDoctors[0]?.name || "";
+
+      const requestedDoctor = searchParams.get("doctor");
+      const matchedDoctor = availableDoctors.find(
+        (item) => String(item.email || item.id) === requestedDoctor,
+      );
+
+      if (matchedDoctor) {
+        setDoctor(matchedDoctor.name);
+        return;
+      }
+
+      setDoctor((current) => {
+        if (availableDoctors.some((item) => item.name === current)) {
+          return current;
+        }
+        return availableDoctors[0]?.name || "";
+      });
     });
   }, [searchParams]);
 

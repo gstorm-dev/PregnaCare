@@ -23,7 +23,9 @@ import {
   getUserNotifications,
   removeAppointment,
 } from "../../Services/appointments";
-import { getAvailableDoctors } from "../../Services/doctor";
+import { persistLoggedInUser } from "../../Services/auth";
+import { signOutUser } from "../../Services/auth";
+import { subscribeToDoctors, useAvailableDoctors } from "../../Services/doctor";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
@@ -106,7 +108,7 @@ const PatientDashboard = () => {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("loggedInUser");
+    signOutUser();
     navigate("/");
   };
 
@@ -435,7 +437,7 @@ const WorkspaceView = ({
   displayName,
   patient,
 }) => {
-  const doctors = getAvailableDoctors();
+  const doctors = useAvailableDoctors();
   const filteredDoctors = doctors.filter((doctor) =>
     `${doctor.name} ${doctor.specialty} ${doctor.location}`
       .toLowerCase()
@@ -697,6 +699,17 @@ const WorkspaceView = ({
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          persistLoggedInUser({
+            ...patient,
+            name: data.get("name") || patient?.name,
+            email: data.get("email") || patient?.email,
+            pregnancyWeek: data.get("pregnancyWeek") || "",
+            dueDate: data.get("dueDate") || "",
+            bloodType: data.get("bloodType") || "",
+            medicalHistory: data.get("medicalHistory") || "",
+            emergencyContact: data.get("emergencyContact") || "",
+          });
           setProfileSaved(true);
           window.setTimeout(() => setProfileSaved(false), 2200);
         }}
@@ -812,29 +825,29 @@ const AppointmentWorkspace = ({
   }, []);
 
   useEffect(() => {
-    const availableDoctors = getAvailableDoctors();
+    return subscribeToDoctors((availableDoctors) => {
+      setDoctorOptions((current) => {
+        const sameList =
+          current.length === availableDoctors.length &&
+          current.every(
+            (item, index) =>
+              item.name === availableDoctors[index]?.name &&
+              item.email === availableDoctors[index]?.email,
+          );
+        return sameList ? current : availableDoctors;
+      });
 
-    setDoctorOptions((current) => {
-      const sameList =
-        current.length === availableDoctors.length &&
-        current.every(
-          (item, index) =>
-            item.name === availableDoctors[index]?.name &&
-            item.email === availableDoctors[index]?.email,
-        );
-      return sameList ? current : availableDoctors;
-    });
-
-    if (selectedDoctor?.name) {
-      setDoctor(selectedDoctor.name);
-      return;
-    }
-
-    setDoctor((current) => {
-      if (availableDoctors.some((item) => item.name === current)) {
-        return current;
+      if (selectedDoctor?.name) {
+        setDoctor(selectedDoctor.name);
+        return;
       }
-      return availableDoctors[0]?.name || "";
+
+      setDoctor((current) => {
+        if (availableDoctors.some((item) => item.name === current)) {
+          return current;
+        }
+        return availableDoctors[0]?.name || "";
+      });
     });
   }, [selectedDoctor]);
 

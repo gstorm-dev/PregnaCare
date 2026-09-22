@@ -1,5 +1,13 @@
+<<<<<<< Updated upstream
 import React from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+=======
+import React, { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { BrowserRouter, Route, Routes, Router } from "react-router-dom";
+import { auth } from "./firebase";
+import { ensureSession } from "./Services/auth";
+>>>>>>> Stashed changes
 import Home from "./Pages/Home/home";
 import AuthPage from "./Pages/Auth/auth";
 import PatientDashboard from "./Pages/Patient/patientdashboard";
@@ -10,6 +18,26 @@ import Doctordashboard from "./Pages/Doctor/doctordashboard";
 import Consultation from "./Pages/Consultation/consultation";
 
 const App = () => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, async (user) => {
+      try {
+        if (user) await ensureSession(user);
+      } finally {
+        setReady(true);
+      }
+    });
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        Loading PregnaCare...
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Routes>

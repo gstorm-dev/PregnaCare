@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { ChevronRight, Search, Star, Stethoscope } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getAvailableDoctors } from "../../Services/doctor";
+import { useAvailableDoctors } from "../../Services/doctor";
 
 const Doctors = () => {
-  const availableDoctors = getAvailableDoctors();
+  const availableDoctors = useAvailableDoctors();
   const [query, setQuery] = useState("");
   const [specialty, setSpecialty] = useState("All specialties");
   const specialties = [

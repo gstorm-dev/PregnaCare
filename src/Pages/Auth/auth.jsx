@@ -1,12 +1,20 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+<<<<<<< Updated upstream
+=======
+import {
+  cacheSession,
+  loginUser,
+  registerUser,
+  signOutUser,
+} from "../../Services/auth";
+>>>>>>> Stashed changes
 import { createRandomAvatar } from "../../utils/avatar";
 
 const AuthPage = ({ mode, role }) => {
   const navigate = useNavigate();
   const isSignup = mode === "signup";
   const roleLabel = role === "doctor" ? "Doctor" : "Patient";
-  const storageKey = `${role}User`;
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,9 +35,32 @@ const AuthPage = ({ mode, role }) => {
   const [applicationSent] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (event) => {
+  const getAuthError = (authError) => {
+    const code = authError?.code || "";
+    if (code === "auth/email-already-in-use") {
+      return "An account with this email already exists. Sign in instead.";
+    }
+    if (
+      code === "auth/invalid-credential" ||
+      code === "auth/wrong-password" ||
+      code === "auth/user-not-found" ||
+      code === "auth/invalid-email"
+    ) {
+      return "No matching account found. Please check your details or sign up first.";
+    }
+    if (code === "auth/weak-password") {
+      return "Password should be at least 6 characters.";
+    }
+    if (code === "auth/network-request-failed") {
+      return "Network error. Check your connection and try again.";
+    }
+    return authError?.message || "Something went wrong. Please try again.";
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
@@ -40,6 +71,7 @@ const AuthPage = ({ mode, role }) => {
       }
 
       if (role === "doctor") {
+<<<<<<< Updated upstream
         const doctorProfile = {
           name,
           email,
@@ -50,6 +82,8 @@ const AuthPage = ({ mode, role }) => {
         };
 
         localStorage.setItem(storageKey, JSON.stringify(doctorProfile));
+=======
+>>>>>>> Stashed changes
         setCredentialsStep(true);
         return;
       }
@@ -59,12 +93,12 @@ const AuthPage = ({ mode, role }) => {
         return;
       }
 
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          name,
+      try {
+        setSubmitting(true);
+        await registerUser({
           email,
           password,
+<<<<<<< Updated upstream
           role,
           avatar: createRandomAvatar(role),
           dueDate,
@@ -75,20 +109,39 @@ const AuthPage = ({ mode, role }) => {
         }),
       );
       setAccountCreated(true);
+=======
+          profile: {
+            name,
+            role,
+            avatar: createRandomAvatar(role),
+            dueDate,
+            pregnancyWeek,
+            bloodType,
+            medicalHistory,
+            emergencyContact,
+          },
+        });
+        await signOutUser();
+        setAccountCreated(true);
+      } catch (authError) {
+        setError(getAuthError(authError));
+      } finally {
+        setSubmitting(false);
+      }
+>>>>>>> Stashed changes
       return;
     }
 
-    const savedUser = JSON.parse(localStorage.getItem(storageKey) || "null");
-    if (
-      !savedUser ||
-      savedUser.email !== email ||
-      savedUser.password !== password
-    ) {
-      setError(
-        "No matching account found. Please check your details or sign up first.",
-      );
-      return;
+    try {
+      setSubmitting(true);
+      await loginUser({ email, password, role });
+      navigate(role === "doctor" ? "/doctor" : "/patient");
+    } catch (authError) {
+      setError(getAuthError(authError));
+    } finally {
+      setSubmitting(false);
     }
+<<<<<<< Updated upstream
 
     const userWithAvatar = savedUser.avatar
       ? savedUser
@@ -99,12 +152,15 @@ const AuthPage = ({ mode, role }) => {
       localStorage.setItem("doctorUser", JSON.stringify(userWithAvatar));
     }
     navigate(role === "doctor" ? "/doctor" : "/patient");
+=======
+>>>>>>> Stashed changes
   };
 
-  const handleCredentialSubmit = (event) => {
+  const handleCredentialSubmit = async (event) => {
     event.preventDefault();
     setError("");
 
+<<<<<<< Updated upstream
     const doctorProfile = {
       name,
       email,
@@ -150,6 +206,37 @@ const AuthPage = ({ mode, role }) => {
       localStorage.setItem("doctorUser", JSON.stringify(doctorProfile));
       navigate("/doctor");
     }, 5000);
+=======
+    try {
+      setSubmitting(true);
+      const doctorProfile = await registerUser({
+        email,
+        password,
+        profile: {
+          name,
+          role,
+          avatar: createRandomAvatar(role),
+          status: "pending_verification",
+          licenseNumber,
+          specialty,
+          clinic: clinicName,
+          clinicName,
+          phone: contactInfo,
+          contactInfo,
+          experience,
+          submittedAt: new Date().toISOString(),
+        },
+      });
+      cacheSession(doctorProfile);
+      setIsProcessing(true);
+      window.setTimeout(() => {
+        navigate("/doctor");
+      }, 5000);
+    } catch (authError) {
+      setError(getAuthError(authError));
+      setSubmitting(false);
+    }
+>>>>>>> Stashed changes
   };
 
   return (
@@ -263,9 +350,10 @@ const AuthPage = ({ mode, role }) => {
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                disabled={submitting}
+                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Submit application
+                {submitting ? "Creating account..." : "Submit application"}
               </button>
             </form>
           ) : isSignup && role === "patient" && patientDetailsStep ? (
@@ -326,9 +414,10 @@ const AuthPage = ({ mode, role }) => {
               </label>
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                disabled={submitting || accountCreated}
+                className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Complete patient profile
+                {submitting ? "Creating account..." : "Complete patient profile"}
               </button>
             </form>
           ) : (
@@ -398,11 +487,14 @@ const AuthPage = ({ mode, role }) => {
               ) : (
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  disabled={submitting}
+                  className="w-full rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isSignup
-                    ? `Create ${roleLabel} account`
-                    : `Sign in as ${roleLabel.toLowerCase()}`}
+                  {submitting
+                    ? "Please wait..."
+                    : isSignup
+                      ? `Create ${roleLabel} account`
+                      : `Sign in as ${roleLabel.toLowerCase()}`}
                 </button>
               )}
             </form>
