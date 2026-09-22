@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { createRandomAvatar } from "../../utils/avatar";
 
 const AuthPage = ({ mode, role }) => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const AuthPage = ({ mode, role }) => {
   const [emergencyContact, setEmergencyContact] = useState("");
   const [patientDetailsStep, setPatientDetailsStep] = useState(false);
   const [credentialsStep, setCredentialsStep] = useState(false);
-  const [applicationSent, setApplicationSent] = useState(false);
+  const [applicationSent] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +45,7 @@ const AuthPage = ({ mode, role }) => {
           email,
           password,
           role,
+          avatar: createRandomAvatar(role),
           status: "pending_verification",
         };
 
@@ -64,6 +66,7 @@ const AuthPage = ({ mode, role }) => {
           email,
           password,
           role,
+          avatar: createRandomAvatar(role),
           dueDate,
           pregnancyWeek,
           bloodType,
@@ -87,9 +90,13 @@ const AuthPage = ({ mode, role }) => {
       return;
     }
 
-    sessionStorage.setItem("loggedInUser", JSON.stringify(savedUser));
+    const userWithAvatar = savedUser.avatar
+      ? savedUser
+      : { ...savedUser, avatar: createRandomAvatar(role) };
+    localStorage.setItem(storageKey, JSON.stringify(userWithAvatar));
+    sessionStorage.setItem("loggedInUser", JSON.stringify(userWithAvatar));
     if (role === "doctor") {
-      localStorage.setItem("doctorUser", JSON.stringify(savedUser));
+      localStorage.setItem("doctorUser", JSON.stringify(userWithAvatar));
     }
     navigate(role === "doctor" ? "/doctor" : "/patient");
   };
@@ -103,6 +110,7 @@ const AuthPage = ({ mode, role }) => {
       email,
       password,
       role,
+      avatar: createRandomAvatar(role),
       status: "pending_verification",
       licenseNumber,
       specialty,

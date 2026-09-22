@@ -13,7 +13,6 @@ import {
   Stethoscope,
   Search,
   Save,
-  UserRound,
   X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -43,6 +42,9 @@ const PatientDashboard = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [profileSaved, setProfileSaved] = useState(false);
   const [appointmentNotifications, setAppointmentNotifications] = useState([]);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState(
+    new Set(),
+  );
   const savedUser = useMemo(() => {
     try {
       return JSON.parse(sessionStorage.getItem("loggedInUser") || "null");
@@ -54,13 +56,27 @@ const PatientDashboard = () => {
   const displayName = savedUser?.name || "Jane Doe";
   const firstName = displayName.split(" ")[0];
   const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(savedUser?.email || displayName)}`;
+  const dueDate = savedUser?.dueDate || "Not provided";
+  const pregnancyWeek = savedUser?.pregnancyWeek
+    ? `Week ${savedUser.pregnancyWeek}`
+    : "Not provided";
+  const bloodType = savedUser?.bloodType || "Not provided";
+  const patientAppointments = getAppointments().filter(
+    (appointment) => appointment.patientEmail === savedUser?.email,
+  );
+  const assignedAppointment =
+    patientAppointments.find((appointment) => appointment.status === "Accepted") ||
+    patientAppointments.find((appointment) => appointment.status === "Pending");
+  const currentDoctor = assignedAppointment?.doctorName || "Not assigned";
 
   useEffect(() => {
     const syncNotifications = () => {
       const patient = JSON.parse(
         sessionStorage.getItem("loggedInUser") || "null",
       );
-      const notifications = getUserNotifications(patient, "patient");
+      const notifications = getUserNotifications(patient, "patient").filter(
+        (notification) => !dismissedNotificationIds.has(notification.id),
+      );
       setAppointmentNotifications(notifications);
     };
 
@@ -76,7 +92,18 @@ const PatientDashboard = () => {
       );
       window.removeEventListener("storage", syncNotifications);
     };
-  }, []);
+  }, [dismissedNotificationIds]);
+
+  const clearAllNotifications = () => {
+    setDismissedNotificationIds(
+      (current) =>
+        new Set([
+          ...current,
+          ...appointmentNotifications.map((notification) => notification.id),
+        ]),
+    );
+    setAppointmentNotifications([]);
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("loggedInUser");
@@ -229,23 +256,35 @@ const PatientDashboard = () => {
                 {appointmentNotifications.length === 0 ? (
                   <p className="font-semibold">You are all caught up.</p>
                 ) : (
-                  appointmentNotifications.map((notification) => (
-                    <button
-                      key={notification.id}
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          `/consultation/${getConsultationRoomName(notification.appointment)}?appointment=${encodeURIComponent(notification.appointment.id)}`,
-                        )
-                      }
-                      className="w-full rounded-xl bg-[#fff8f4] p-3 text-left hover:bg-[#fff0ea]"
-                    >
-                      <p className="font-semibold">
-                        {notification.title}
-                      </p>
-                      <p className="mt-1 text-[#69736f]">{notification.text}</p>
-                    </button>
-                  ))
+                  <>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="font-semibold">Notifications</p>
+                      <button
+                        type="button"
+                        onClick={clearAllNotifications}
+                        className="cursor-pointer text-xs font-semibold text-[#c87861] hover:text-[#b66d58]"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    {appointmentNotifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            `/consultation/${getConsultationRoomName(notification.appointment)}?appointment=${encodeURIComponent(notification.appointment.id)}`,
+                          )
+                        }
+                        className="mb-2 w-full rounded-xl bg-[#fff8f4] p-3 text-left last:mb-0 hover:bg-[#fff0ea]"
+                      >
+                        <p className="font-semibold">
+                          {notification.title}
+                        </p>
+                        <p className="mt-1 text-[#69736f]">{notification.text}</p>
+                      </button>
+                    ))}
+                  </>
                 )}
               </div>
             )}
@@ -266,14 +305,15 @@ const PatientDashboard = () => {
             <>
               <section className="grid gap-5 md:grid-cols-2">
                 <DashboardCard
-                  icon={UserRound}
+                  avatar={avatarUrl}
                   title="My Profile"
                   accent="peach"
                 >
                   <InfoRow label="Name" value={displayName} />
-                  <InfoRow label="Due Date" value="October 24, 2026" />
-                  <InfoRow label="Doctor" value="Dr. Sarah Johnson" />
-                  <InfoRow label="Pregnancy Week" value="Week 22" />
+                  <InfoRow label="Due Date" value={dueDate} />
+                  <InfoRow label="Doctor" value={currentDoctor} />
+                  <InfoRow label="Pregnancy Week" value={pregnancyWeek} />
+                  <InfoRow label="Blood Type" value={bloodType} />
                 </DashboardCard>
                 <DashboardCard
                   icon={FileText}
@@ -969,7 +1009,7 @@ const WorkspaceHeading = ({ eyebrow, title, text }) => (
   </div>
 );
 
-const DashboardCard = ({ icon: Icon, title, accent, children }) => {
+const DashboardCard = ({ icon: Icon, avatar, title, accent, children }) => {
   const accents = {
     peach: "bg-[#fff0ea] text-[#c87861]",
     sage: "bg-[#edf3ef] text-[#6f9387]",
@@ -982,7 +1022,15 @@ const DashboardCard = ({ icon: Icon, title, accent, children }) => {
         <div
           className={`flex h-11 w-11 items-center justify-center rounded-xl ${accents[accent]}`}
         >
-          <Icon size={21} />
+          {avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              className="h-11 w-11 rounded-xl object-cover"
+            />
+          ) : (
+            <Icon size={21} />
+          )}
         </div>
         <h2 className="font-serif text-2xl">{title}</h2>
       </div>

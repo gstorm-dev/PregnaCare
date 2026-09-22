@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, MessageCircle, Send, Smartphone } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   getAppointments,
   getChatMessages,
@@ -15,7 +15,6 @@ const toWhatsAppNumber = (phone) => {
 };
 
 const Consultation = () => {
-  const { roomName } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const appointmentId = new URLSearchParams(location.search).get("appointment");

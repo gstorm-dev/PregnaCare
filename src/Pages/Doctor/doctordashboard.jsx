@@ -15,7 +15,6 @@ import {
   Search,
   Settings,
   Stethoscope,
-  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -28,6 +27,7 @@ import {
   saveAppointments,
   updateAppointment,
 } from "../../Services/appointments";
+import { getAvatarUrl } from "../../utils/avatar";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, view: "dashboard" },
@@ -36,8 +36,6 @@ const navItems = [
   { label: "Pending Requests", icon: FileText, view: "pendingPatients" },
   { label: "Reports", icon: Activity, view: "reports" },
 ];
-
-const initialPendingRequests = [];
 
 const defaultPreferences = {
   appointmentReminders: true,
@@ -53,17 +51,6 @@ const getDoctorStorageKey = (section) => {
     return `doctorDashboard:${doctorId}:${section}`;
   } catch {
     return `doctorDashboard:guest:${section}`;
-  }
-};
-
-const getStoredList = (section, fallback) => {
-  try {
-    const savedList = JSON.parse(
-      localStorage.getItem(getDoctorStorageKey(section)) || "null",
-    );
-    return Array.isArray(savedList) ? savedList : fallback;
-  } catch {
-    return fallback;
   }
 };
 
@@ -95,6 +82,9 @@ const Doctordashboard = () => {
   const [pendingAppointments, setPendingAppointments] = useState([]);
   const [acceptedAppointments, setAcceptedAppointments] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState(
+    new Set(),
+  );
   const notifiedAppointmentIds = useRef(new Set());
   const [doctorProfile, setDoctorProfile] = useState(() => {
     try {
@@ -108,6 +98,7 @@ const Doctordashboard = () => {
         contactInfo: storedUser?.contactInfo || storedUser?.phone || "",
         clinic: storedUser?.clinic || storedUser?.clinicName || "",
         specialty: storedUser?.specialty || "",
+        avatar: storedUser?.avatar || "",
       };
     } catch {
       return {
@@ -117,6 +108,7 @@ const Doctordashboard = () => {
         contactInfo: "",
         clinic: "",
         specialty: "",
+        avatar: "",
       };
     }
   });
@@ -131,7 +123,10 @@ const Doctordashboard = () => {
 
   const displayName = doctorProfile.name || "Doctor";
   const firstName = displayName.split(" ").slice(-1)[0] || "Doctor";
-  const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(doctorProfile.email || displayName)}`;
+  const avatarUrl =
+    doctorProfile.avatar ||
+    savedUser?.avatar ||
+    getAvatarUrl(doctorProfile.email || displayName);
 
   const handleLogout = () => {
     sessionStorage.removeItem("loggedInUser");
@@ -179,9 +174,8 @@ const Doctordashboard = () => {
         ),
       );
       setNotifications(
-        getUserNotifications(
-          { email: doctorProfile.email },
-          "doctor",
+        getUserNotifications({ email: doctorProfile.email }, "doctor").filter(
+          (notification) => !dismissedNotificationIds.has(notification.id),
         ),
       );
     };
@@ -201,7 +195,18 @@ const Doctordashboard = () => {
       );
       window.removeEventListener("storage", syncAppointments);
     };
-  }, [doctorProfile.email]);
+  }, [doctorProfile.email, dismissedNotificationIds]);
+
+  const clearAllNotifications = () => {
+    setDismissedNotificationIds(
+      (current) =>
+        new Set([
+          ...current,
+          ...notifications.map((notification) => notification.id),
+        ]),
+    );
+    setNotifications([]);
+  };
 
   const notifyDoctorConsultationReady = (appointment) => {
     window.alert(
@@ -453,24 +458,36 @@ const Doctordashboard = () => {
                 {notifications.length === 0 ? (
                   <p className="font-semibold">You are all caught up.</p>
                 ) : (
-                  notifications.map((notification) => (
-                    <button
-                      key={notification.id}
-                      type="button"
-                      onClick={() => {
-                        if (notification.type === "request") {
-                          setActiveView("pendingPatients");
-                        } else {
-                          startConsultation(notification.appointment);
-                        }
-                        setNotificationsOpen(false);
-                      }}
-                      className="mb-2 w-full rounded-xl bg-[#fff8f4] p-3 text-left last:mb-0 hover:bg-[#fff0ea]"
-                    >
-                      <p className="font-semibold">{notification.title}</p>
-                      <p className="mt-1 text-[#69736f]">{notification.text}</p>
-                    </button>
-                  ))
+                  <>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="font-semibold">Notifications</p>
+                      <button
+                        type="button"
+                        onClick={clearAllNotifications}
+                        className="cursor-pointer text-xs font-semibold text-[#c87861] hover:text-[#b66d58]"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    {notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => {
+                          if (notification.type === "request") {
+                            setActiveView("pendingPatients");
+                          } else {
+                            startConsultation(notification.appointment);
+                          }
+                          setNotificationsOpen(false);
+                        }}
+                        className="mb-2 w-full rounded-xl bg-[#fff8f4] p-3 text-left last:mb-0 hover:bg-[#fff0ea]"
+                      >
+                        <p className="font-semibold">{notification.title}</p>
+                        <p className="mt-1 text-[#69736f]">{notification.text}</p>
+                      </button>
+                    ))}
+                  </>
                 )}
               </div>
             )}
@@ -491,7 +508,7 @@ const Doctordashboard = () => {
             <>
               <section className="grid gap-5 md:grid-cols-2">
                 <DashboardCard
-                  icon={UserRound}
+                  avatar={avatarUrl}
                   title="My Profile"
                   accent="peach"
                 >
@@ -646,7 +663,6 @@ const Doctordashboard = () => {
               setPatientQuery={setPatientQuery}
               filteredPatients={filteredPatients}
               pendingPatients={pendingPatients}
-              acceptedPatients={acceptedPatients}
               handlePendingPatientDecision={handlePendingPatientDecision}
               pendingAppointments={pendingAppointments}
               acceptedAppointments={acceptedAppointments}
@@ -656,11 +672,9 @@ const Doctordashboard = () => {
               setProfileSaved={setProfileSaved}
               preferences={preferences}
               setPreferences={setPreferences}
-              displayName={displayName}
               doctorProfile={doctorProfile}
               setDoctorProfile={setDoctorProfile}
               savedUser={savedUser}
-              handleLogout={handleLogout}
             />
           )}
         </div>
@@ -676,7 +690,6 @@ const WorkspaceView = ({
   setPatientQuery,
   filteredPatients,
   pendingPatients,
-  acceptedPatients,
   handlePendingPatientDecision,
   pendingAppointments,
   acceptedAppointments,
@@ -686,11 +699,9 @@ const WorkspaceView = ({
   setProfileSaved,
   preferences,
   setPreferences,
-  displayName,
   doctorProfile,
   setDoctorProfile,
   savedUser,
-  handleLogout,
 }) => {
   if (view === "patients") {
     return (
@@ -1014,7 +1025,6 @@ const WorkspaceView = ({
   if (view === "reports") {
     const totalAcceptedAppointments = acceptedAppointments.length;
     const totalPendingAppointments = pendingAppointments.length;
-    const totalAcceptedPatients = acceptedPatients.length;
     const totalDeclined = pendingPatients.length;
     const careScore =
       totalAcceptedAppointments > 0
@@ -1277,25 +1287,6 @@ const WorkspaceView = ({
   }
 };
 
-const AgendaRow = ({ time, title }) => (
-  <div className="flex items-center justify-between rounded-xl bg-[#fff8f4] p-3">
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#c87861]">
-        {time}
-      </p>
-      <p className="mt-1 font-semibold text-[#26322e]">{title}</p>
-    </div>
-    <ChevronRight size={16} className="text-[#c87861]" />
-  </div>
-);
-
-const PlanRow = ({ title, detail }) => (
-  <div className="rounded-2xl border border-[#f0e8e3] bg-[#fffdfb] p-4">
-    <p className="font-semibold text-[#26322e]">{title}</p>
-    <p className="mt-2 text-sm leading-6 text-[#69736f]">{detail}</p>
-  </div>
-);
-
 const ReportCard = ({ title, value, note }) => (
   <div className="rounded-2xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_30px_rgba(125,79,62,.05)]">
     <p className="text-xs font-semibold uppercase tracking-[.18em] text-[#c87861]">
@@ -1333,7 +1324,7 @@ const WorkspaceHeading = ({ eyebrow, title, text }) => (
   </div>
 );
 
-const DashboardCard = ({ icon: Icon, title, accent, children }) => {
+const DashboardCard = ({ icon: Icon, avatar, title, accent, children }) => {
   const accents = {
     peach: "bg-[#fff0ea] text-[#c87861]",
     sage: "bg-[#edf3ef] text-[#6f9387]",
@@ -1347,7 +1338,15 @@ const DashboardCard = ({ icon: Icon, title, accent, children }) => {
         <div
           className={`flex h-11 w-11 items-center justify-center rounded-xl ${accents[accent]}`}
         >
-          <Icon size={21} />
+          {avatar ? (
+            <img
+              src={avatar}
+              alt=""
+              className="h-11 w-11 rounded-xl object-cover"
+            />
+          ) : (
+            <Icon size={21} />
+          )}
         </div>
         <h2 className="font-serif text-2xl">{title}</h2>
       </div>
