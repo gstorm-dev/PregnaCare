@@ -156,10 +156,7 @@ const AuthPage = ({ mode, role }) => {
     <main className="min-h-[calc(100vh-80px)] w-full px-6 py-12">
       <div className="mx-auto flex min-h-[calc(100vh-176px)] w-full max-w-6xl items-center justify-center">
         <section className="w-full max-w-md rounded-3xl border border-blue-100 bg-white p-6 shadow-sm sm:p-8">
-          <Link
-            to="/"
-            className="text-sm font-semibold text-blue-700 transition hover:text-blue-800"
-          >
+          <Link to="/" className="text-sm font-semibold text-blue-700 transition hover:text-blue-800">
             ← Back to home
           </Link>
 
